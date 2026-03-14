@@ -24,6 +24,12 @@ const scoreSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    // Play duration in seconds submitted alongside the score
+    playTime: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
     // Placeholder for any extra per-game data (e.g. level reached, time taken)
     metadata: {
       type: mongoose.Schema.Types.Mixed,
@@ -32,5 +38,10 @@ const scoreSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Leaderboard sort: best score first, then shortest play time for ties
+scoreSchema.index({ gameId: 1, score: -1, playTime: 1 });
+// One entry per user per game – enforced at DB level
+scoreSchema.index({ userCode: 1, gameId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Score', scoreSchema);

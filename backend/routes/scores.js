@@ -20,6 +20,7 @@ router.post(
     body('userCode').notEmpty().withMessage('userCode is required').trim(),
     body('gameId').notEmpty().withMessage('gameId is required'),
     body('score').isNumeric().withMessage('score must be a number'),
+    body('playTime').isNumeric({ min: 0 }).withMessage('playTime must be a non-negative number'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -27,7 +28,7 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { userCode, gameId, score, metadata } = req.body;
+    const { userCode, gameId, score, playTime, metadata } = req.body;
 
     try {
       // Verify the user exists
@@ -45,20 +46,60 @@ router.post(
         return res.status(403).json({ message: 'Minigame is not active' });
       }
 
-      const newScore = await Score.create({
-        userCode,
-        gameId,
-        score,
-        metadata,
-      });
+      // Upsert: one row per (userCode, gameId) – always overwrite with latest submission
+      const savedScore = await Score.findOneAndUpdate(
+        { userCode, gameId },
+        { $set: { score, playTime, metadata } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
 
-      return res.status(201).json(newScore);
+      return res.status(200).json(savedScore);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: 'Server error' });
     }
   }
 );
+
+/**
+ * GET /api/scores/leaderboard/:gameId
+ *
+ * Returns the ordered scoreboard for a specific minigame.
+ * Each user appears once with their personal best score.
+ * Sorted by score descending; ties broken by earliest submission.
+ *
+ * Optional query param: ?limit=N  (omit for full list)
+ */
+router.get('/leaderboard/:gameId', async (req, res) => {
+  try {
+    const { gameId } = req.params;
+    const limitParam = parseInt(req.query.limit, 10);
+    const hasLimit = !isNaN(limitParam) && limitParam > 0;
+
+    const game = await Minigame.findById(gameId).select('name isActive');
+    if (!game) {
+      return res.status(404).json({ message: 'Minigame not found' });
+    }
+
+    // One row per user per game – simple find + sort (no grouping needed)
+    const mongoose = require('mongoose');
+    let query = Score.find(
+      { gameId: new mongoose.Types.ObjectId(gameId) },
+      { _id: 0, userCode: 1, score: 1, playTime: 1, updatedAt: 1 }
+    ).sort({ score: -1, playTime: 1 });
+
+    if (hasLimit) query = query.limit(limitParam);
+
+    const board = await query.lean();
+
+    const ranked = board.map((entry, i) => ({ rank: i + 1, ...entry }));
+
+    return res.json({ gameId, gameName: game.name, leaderboard: ranked });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
 
 /**
  * GET /api/scores
