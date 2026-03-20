@@ -6,7 +6,7 @@ Central backend for the numerous minigames that will be played on the event day.
 
 ```
 /
-├── backend/    Node.js + Express + MongoDB REST API
+├── backend/    Node.js + Express + Supabase (Postgres) REST API
 └── frontend/   React admin panel (Vite)
 ```
 
@@ -25,7 +25,7 @@ The admin panel is used to register games and manage participants; it has no cou
 
 ### Prerequisites
 - Node.js ≥ 18
-- MongoDB (local or Atlas)
+- Supabase project
 
 ### Install & run
 
@@ -43,7 +43,8 @@ npm start              # production
 | Variable | Description |
 |----------|-------------|
 | `PORT` | Port the API listens on (default `5000`) |
-| `MONGO_URI` | MongoDB connection string |
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key used by backend API |
 | `JWT_SECRET` | Secret used to sign admin JWTs |
 | `ADMIN_SECRET` | Plain-text password for the admin login endpoint |
 
@@ -69,12 +70,13 @@ Content-Type: application/json
 
 {
   "userCode": "U001",
-  "gameId":   "<minigame ObjectId>",
+  "gameId":   "<minigame UUID>",
   "score":    42,
+  "playTime": 31.5,
   "metadata": {}   // optional – any extra per-game data
 }
 ```
-Response `201 Created`: the saved score document.
+Response `200 OK`: the saved/updated score document.
 
 ---
 
@@ -151,8 +153,9 @@ npm test
 | Field | Type | Description |
 |-------|------|-------------|
 | `userCode` | String | Reference to User.userCode |
-| `gameId` | ObjectId | Reference to Minigame |
+| `gameId` | UUID | Reference to Minigame |
 | `score` | Number | Numeric score value |
+| `playTime` | Number | Completion time (lower is better for tie-breaks) |
 | `metadata` | Mixed | Optional per-game extra data |
 
 ### Minigame

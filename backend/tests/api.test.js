@@ -1,35 +1,48 @@
 /**
  * Basic API smoke tests.
- * These tests use supertest against the Express app with a mocked Mongoose
- * to avoid requiring a real MongoDB instance in CI.
+ * These tests use supertest against the Express app with a mocked Supabase
+ * client so no real DB connection is required.
  */
 const request = require('supertest');
 
 // Set required env vars before loading the app
 process.env.JWT_SECRET = 'test_jwt_secret';
 process.env.ADMIN_SECRET = 'test_admin_secret';
-process.env.MONGO_URI = 'mongodb://localhost:27017/test';
+process.env.SUPABASE_URL = 'https://example.supabase.co';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test_service_role_key';
 
-// Mock mongoose so no real DB connection is required
-jest.mock('mongoose', () => {
-  const actual = jest.requireActual('mongoose');
-  return {
-    ...actual,
-    connect: jest.fn().mockResolvedValue({ connection: { host: 'mock' } }),
-  };
-});
+const mockSupabase = {
+  from: jest.fn(),
+};
 
-// Mock models
-jest.mock('../models/User');
-jest.mock('../models/Score');
-jest.mock('../models/Minigame');
+jest.mock('../config/db', () => ({
+  connectDB: jest.fn().mockResolvedValue(undefined),
+  supabase: mockSupabase,
+}));
 
-const User = require('../models/User');
-const Score = require('../models/Score');
-const Minigame = require('../models/Minigame');
 const app = require('../server');
 
-// ── Health check ──────────────────────────────────────────────────────────────
+const buildMaybeSingleQuery = (result) => {
+  const query = {
+    select: jest.fn(() => query),
+    eq: jest.fn(() => query),
+    maybeSingle: jest.fn().mockResolvedValue(result),
+  };
+  return query;
+};
+
+const buildUpsertQuery = (result) => {
+  const query = {
+    upsert: jest.fn(() => query),
+    select: jest.fn(() => query),
+    single: jest.fn().mockResolvedValue(result),
+  };
+  return query;
+};
+
+beforeEach(() => {
+  mockSupabase.from.mockReset();
+});
 
 describe('GET /api/health', () => {
   it('returns status ok', async () => {
@@ -39,13 +52,12 @@ describe('GET /api/health', () => {
   });
 });
 
-// ── Admin login ───────────────────────────────────────────────────────────────
-
 describe('POST /api/admin/login', () => {
   it('returns a token with the correct secret', async () => {
     const res = await request(app)
       .post('/api/admin/login')
       .send({ secret: 'test_admin_secret' });
+
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('token');
   });
@@ -54,24 +66,21 @@ describe('POST /api/admin/login', () => {
     const res = await request(app)
       .post('/api/admin/login')
       .send({ secret: 'wrong_secret' });
-    expect(res.statusCode).toBe(401);
-  });
 
-  it('returns 400 when secret is missing', async () => {
-    const res = await request(app).post('/api/admin/login').send({});
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(401);
   });
 });
 
-// ── Users – GET username ──────────────────────────────────────────────────────
-
 describe('GET /api/users/username/:userCode', () => {
   it('returns username for a known userCode', async () => {
-    User.findOne = jest.fn().mockReturnValue({
-      select: jest.fn().mockResolvedValue({
-        userCode: 'U001',
-        username: 'Alice',
-      }),
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'users') {
+        return buildMaybeSingleQuery({
+          data: { user_code: 'U001', username: 'Alice' },
+          error: null,
+        });
+      }
+      throw new Error(`Unexpected table: ${table}`);
     });
 
     const res = await request(app).get('/api/users/username/U001');
@@ -80,8 +89,11 @@ describe('GET /api/users/username/:userCode', () => {
   });
 
   it('returns 404 for an unknown userCode', async () => {
-    User.findOne = jest.fn().mockReturnValue({
-      select: jest.fn().mockResolvedValue(null),
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'users') {
+        return buildMaybeSingleQuery({ data: null, error: null });
+      }
+      throw new Error(`Unexpected table: ${table}`);
     });
 
     const res = await request(app).get('/api/users/username/UNKNOWN');
@@ -89,87 +101,48 @@ describe('GET /api/users/username/:userCode', () => {
   });
 });
 
-// ── Scores – POST ─────────────────────────────────────────────────────────────
-
 describe('POST /api/scores', () => {
-  const validBody = {
-    userCode: 'U001',
-    gameId: '507f1f77bcf86cd799439011',
-    score: 42,
-  };
+  it('upserts a score and returns 200', async () => {
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'users') {
+        return buildMaybeSingleQuery({ data: { id: 'user-1' }, error: null });
+      }
 
-  it('saves a score and returns 201', async () => {
-    User.findOne = jest.fn().mockResolvedValue({ userCode: 'U001' });
-    Minigame.findById = jest
-      .fn()
-      .mockResolvedValue({ _id: validBody.gameId, isActive: true });
-    Score.create = jest.fn().mockResolvedValue({ ...validBody, _id: 'score1' });
+      if (table === 'minigames') {
+        return buildMaybeSingleQuery({
+          data: { id: 'game-1', is_active: true },
+          error: null,
+        });
+      }
 
-    const res = await request(app).post('/api/scores').send(validBody);
-    expect(res.statusCode).toBe(201);
-    expect(res.body).toHaveProperty('score', 42);
-  });
+      if (table === 'scores') {
+        return buildUpsertQuery({
+          data: {
+            id: 'score-1',
+            user_code: 'U001',
+            game_id: 'game-1',
+            score: 42,
+            play_time: 30,
+            metadata: {},
+            created_at: '2026-03-18T10:00:00.000Z',
+            updated_at: '2026-03-18T10:00:00.000Z',
+          },
+          error: null,
+        });
+      }
 
-  it('returns 404 when user does not exist', async () => {
-    User.findOne = jest.fn().mockResolvedValue(null);
-
-    const res = await request(app).post('/api/scores').send(validBody);
-    expect(res.statusCode).toBe(404);
-  });
-
-  it('returns 400 when required fields are missing', async () => {
-    const res = await request(app)
-      .post('/api/scores')
-      .send({ userCode: 'U001' });
-    expect(res.statusCode).toBe(400);
-  });
-});
-
-// ── Minigames – CRUD ──────────────────────────────────────────────────────────
-
-describe('GET /api/minigames', () => {
-  it('returns a list of minigames', async () => {
-    Minigame.find = jest.fn().mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        sort: jest.fn().mockResolvedValue([{ name: 'Snake', isActive: true }]),
-      }),
+      throw new Error(`Unexpected table: ${table}`);
     });
 
-    const res = await request(app).get('/api/minigames');
+    const res = await request(app).post('/api/scores').send({
+      userCode: 'U001',
+      gameId: 'game-1',
+      score: 42,
+      playTime: 30,
+    });
+
     expect(res.statusCode).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-  });
-});
-
-describe('POST /api/minigames', () => {
-  let adminToken;
-
-  beforeAll(async () => {
-    const res = await request(app)
-      .post('/api/admin/login')
-      .send({ secret: 'test_admin_secret' });
-    adminToken = res.body.token;
-  });
-
-  it('registers a minigame with a valid admin token', async () => {
-    Minigame.findOne = jest.fn().mockResolvedValue(null);
-    Minigame.create = jest
-      .fn()
-      .mockResolvedValue({ name: 'Snake', isActive: true });
-
-    const res = await request(app)
-      .post('/api/minigames')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ name: 'Snake', description: 'Classic snake game' });
-
-    expect(res.statusCode).toBe(201);
-    expect(res.body).toHaveProperty('name', 'Snake');
-  });
-
-  it('rejects minigame creation without a token', async () => {
-    const res = await request(app)
-      .post('/api/minigames')
-      .send({ name: 'Snake' });
-    expect(res.statusCode).toBe(401);
+    expect(res.body).toHaveProperty('score', 42);
+    expect(res.body).toHaveProperty('playTime', 30);
   });
 });

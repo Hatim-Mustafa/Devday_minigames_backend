@@ -1,8 +1,17 @@
 const express = require('express');
 const { param, validationResult } = require('express-validator');
-const User = require('../models/User');
+const { supabase } = require('../config/db');
 
 const router = express.Router();
+
+const mapUser = (row) => ({
+  id: row.id,
+  userCode: row.user_code,
+  username: row.username,
+  metadata: row.metadata,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
 
 /**
  * GET /api/users/username/:userCode
@@ -22,15 +31,22 @@ router.get(
     }
 
     try {
-      const user = await User.findOne({ userCode: req.params.userCode }).select(
-        'userCode username'
-      );
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('user_code, username')
+        .eq('user_code', req.params.userCode)
+        .maybeSingle();
+
+      if (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
+      }
 
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
 
-      return res.json({ userCode: user.userCode, username: user.username });
+      return res.json({ userCode: user.user_code, username: user.username });
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: 'Server error' });
@@ -44,8 +60,17 @@ router.get(
  */
 router.get('/', async (_req, res) => {
   try {
-    const users = await User.find().select('-__v');
-    return res.json(users);
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Server error' });
+    }
+
+    return res.json((users || []).map(mapUser));
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
@@ -67,15 +92,39 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const existing = await User.findOne({ userCode });
+    const { data: existing, error: existingError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('user_code', userCode)
+      .maybeSingle();
+
+    if (existingError) {
+      console.error(existingError);
+      return res.status(500).json({ message: 'Server error' });
+    }
+
     if (existing) {
       return res
         .status(409)
         .json({ message: 'A user with that userCode already exists' });
     }
 
-    const user = await User.create({ userCode, username, metadata });
-    return res.status(201).json(user);
+    const { data: user, error } = await supabase
+      .from('users')
+      .insert({
+        user_code: userCode,
+        username,
+        metadata: metadata || {},
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Server error' });
+    }
+
+    return res.status(201).json(mapUser(user));
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });

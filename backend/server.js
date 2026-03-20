@@ -1,8 +1,8 @@
-require('dotenv').config({ path: './info.env' });
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const connectDB = require('./config/db');
+const { connectDB } = require('./config/db');
 
 const app = express();
 

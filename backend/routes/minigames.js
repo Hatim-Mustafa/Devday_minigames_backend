@@ -1,9 +1,19 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const Minigame = require('../models/Minigame');
+const { supabase } = require('../config/db');
 const { adminAuth } = require('../middleware/auth');
 
 const router = express.Router();
+
+const mapMinigame = (row) => ({
+  id: row.id,
+  name: row.name,
+  description: row.description,
+  isActive: row.is_active,
+  metadata: row.metadata,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
 
 /**
  * GET /api/minigames
@@ -12,8 +22,17 @@ const router = express.Router();
  */
 router.get('/', async (_req, res) => {
   try {
-    const games = await Minigame.find().select('-__v').sort({ createdAt: -1 });
-    return res.json(games);
+    const { data: games, error } = await supabase
+      .from('minigames')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Server error' });
+    }
+
+    return res.json((games || []).map(mapMinigame));
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
@@ -22,15 +41,25 @@ router.get('/', async (_req, res) => {
 
 /**
  * GET /api/minigames/:id
- * Get a single minigame by its MongoDB id.
+ * Get a single minigame by its id.
  */
 router.get('/:id', async (req, res) => {
   try {
-    const game = await Minigame.findById(req.params.id).select('-__v');
+    const { data: game, error } = await supabase
+      .from('minigames')
+      .select('*')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Server error' });
+    }
+
     if (!game) {
       return res.status(404).json({ message: 'Minigame not found' });
     }
-    return res.json(game);
+    return res.json(mapMinigame(game));
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
@@ -55,20 +84,40 @@ router.post(
     const { name, description, isActive, metadata } = req.body;
 
     try {
-      const existing = await Minigame.findOne({ name });
+      const { data: existing, error: existingError } = await supabase
+        .from('minigames')
+        .select('id')
+        .eq('name', name)
+        .maybeSingle();
+
+      if (existingError) {
+        console.error(existingError);
+        return res.status(500).json({ message: 'Server error' });
+      }
+
       if (existing) {
         return res
           .status(409)
           .json({ message: 'A minigame with that name already exists' });
       }
 
-      const game = await Minigame.create({
-        name,
-        description,
-        isActive,
-        metadata,
-      });
-      return res.status(201).json(game);
+      const { data: game, error } = await supabase
+        .from('minigames')
+        .insert({
+          name,
+          description: description || '',
+          is_active: typeof isActive === 'boolean' ? isActive : true,
+          metadata: metadata || {},
+        })
+        .select('*')
+        .single();
+
+      if (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
+      }
+
+      return res.status(201).json(mapMinigame(game));
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: 'Server error' });
@@ -82,15 +131,36 @@ router.post(
  */
 router.put('/:id', adminAuth, async (req, res) => {
   try {
-    const game = await Minigame.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    }).select('-__v');
+    const updatePayload = {};
+    if (Object.prototype.hasOwnProperty.call(req.body, 'name')) {
+      updatePayload.name = req.body.name;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'description')) {
+      updatePayload.description = req.body.description;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'isActive')) {
+      updatePayload.is_active = req.body.isActive;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'metadata')) {
+      updatePayload.metadata = req.body.metadata;
+    }
+
+    const { data: game, error } = await supabase
+      .from('minigames')
+      .update(updatePayload)
+      .eq('id', req.params.id)
+      .select('*')
+      .maybeSingle();
+
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Server error' });
+    }
 
     if (!game) {
       return res.status(404).json({ message: 'Minigame not found' });
     }
-    return res.json(game);
+    return res.json(mapMinigame(game));
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
@@ -103,7 +173,18 @@ router.put('/:id', adminAuth, async (req, res) => {
  */
 router.delete('/:id', adminAuth, async (req, res) => {
   try {
-    const game = await Minigame.findByIdAndDelete(req.params.id);
+    const { data: game, error } = await supabase
+      .from('minigames')
+      .delete()
+      .eq('id', req.params.id)
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Server error' });
+    }
+
     if (!game) {
       return res.status(404).json({ message: 'Minigame not found' });
     }

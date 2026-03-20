@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userCode  String   @unique @map("user_code")
+  username  String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  scores Score[]
+
+  @@map("users")
+}
+
+model Minigame {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @unique
+  description String   @default("")
+  isActive    Boolean  @default(true) @map("is_active")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  scores Score[]
+
+  @@map("minigames")
+}
+
+model Score {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userCode  String   @map("user_code")
+  gameId    String   @db.Uuid @map("game_id")
+  score     Float
+  playTime  Float    @map("play_time")
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User     @relation(fields: [userCode], references: [userCode], onDelete: Cascade)
+  game Minigame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([userCode, gameId])
+  @@index([gameId, score(sort: Desc), playTime(sort: Asc)])
+  @@map("scores")
+}
