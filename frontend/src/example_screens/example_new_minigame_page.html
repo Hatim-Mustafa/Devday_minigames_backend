@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container": "#201f1f",
+              "on-tertiary-fixed-variant": "#004e5d",
+              "tertiary-container": "#319db6",
+              "surface-tint": "#ffb3b3",
+              "on-primary-fixed": "#400009",
+              "error-container": "#93000a",
+              "surface-container-lowest": "#0e0e0e",
+              "surface-dim": "#131313",
+              "on-surface-variant": "#e4beb9",
+              "on-error-container": "#ffdad6",
+              "primary": "#ffb3b3",
+              "primary-fixed-dim": "#ffb3b3",
+              "background": "#131313",
+              "secondary": "#c8c6c5",
+              "on-tertiary-container": "#002e39",
+              "surface-container-high": "#2a2a2a",
+              "tertiary-fixed": "#afecff",
+              "primary-fixed": "#ffdad9",
+              "inverse-on-surface": "#313030",
+              "on-surface": "#e5e2e1",
+              "error": "#ffb4ab",
+              "inverse-surface": "#e5e2e1",
+              "outline": "#ab8985",
+              "on-primary-container": "#5b0011",
+              "on-primary-fixed-variant": "#920021",
+              "surface-container-low": "#1c1b1b",
+              "on-secondary-fixed": "#1b1c1c",
+              "surface-bright": "#3a3939",
+              "on-secondary": "#303030",
+              "on-background": "#e5e2e1",
+              "surface-container-highest": "#353534",
+              "inverse-primary": "#bf002e",
+              "tertiary": "#72d4ef",
+              "on-tertiary-fixed": "#001f27",
+              "secondary-fixed-dim": "#c8c6c5",
+              "surface-variant": "#353534",
+              "tertiary-fixed-dim": "#72d4ef",
+              "secondary-fixed": "#e5e2e1",
+              "secondary-container": "#474746",
+              "on-error": "#690005",
+              "on-secondary-container": "#b7b5b4",
+              "on-primary": "#680014",
+              "on-secondary-fixed-variant": "#474746",
+              "outline-variant": "#5b403d",
+              "surface": "#131313",
+              "primary-container": "#ff525f",
+              "on-tertiary": "#003641"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .glass-panel {
+            background: rgba(53, 53, 52, 0.4);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-fixed overflow-hidden">
+<div class="flex h-screen">
+<!-- SideNavBar -->
+<aside class="bg-[#0e0e0e] text-[#E53935] font-['Inter'] font-medium text-sm fixed left-0 top-0 h-full w-64 flex flex-col py-0 z-40 border-r border-outline-variant/10">
+<div class="p-8">
+<div class="text-[#ff525f] font-black italic tracking-widest text-2xl font-headline uppercase">Developer's Day</div>
+<div class="text-neutral-500 text-[10px] font-headline tracking-tighter uppercase mt-1">MINIGAME_ROOT</div>
+</div>
+<nav class="flex-1 px-4 space-y-2 mt-4">
+<a class="flex items-center gap-3 px-4 py-3 text-[#E4BEB9] hover:bg-[#2A2A2A] transition-all duration-150 ease-in-out font-headline uppercase tracking-tighter" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-[#1c1b1b] text-[#FFB3B3] border-l-4 border-[#E53935] transition-all duration-150 ease-in-out font-headline uppercase tracking-tighter" href="#">
+<span class="material-symbols-outlined" data-icon="sports_esports">sports_esports</span>
+<span>Games</span>
+</a>
+</nav>
+<div class="p-4 mt-auto">
+<div class="bg-surface-container-low p-4 mb-4 flex items-center gap-3">
+<div class="w-10 h-10 bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant">person</span>
+</div>
+<div class="overflow-hidden">
+<p class="text-sm font-bold truncate text-on-surface">Admin Avatar</p>
+<p class="text-[10px] text-on-surface-variant/60 truncate uppercase font-headline">SYS_OP_042</p>
+</div>
+</div>
+<a class="flex items-center gap-3 px-4 py-3 text-[#E4BEB9] hover:bg-[#2A2A2A] transition-all duration-150 ease-in-out font-headline uppercase tracking-tighter" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span>Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-64 bg-background overflow-y-auto no-scrollbar">
+<div class="max-w-5xl mx-auto p-12">
+<!-- Header Section -->
+<div class="mb-12">
+<div class="flex items-center gap-2 text-primary mb-4">
+<span class="material-symbols-outlined text-sm">arrow_back</span>
+<span class="text-xs font-bold uppercase tracking-widest">Back to Dashboard</span>
+</div>
+<h1 class="font-headline text-5xl font-black text-on-surface tracking-tighter uppercase leading-none">Register New Minigame</h1>
+<p class="mt-4 text-on-surface-variant max-w-2xl font-body border-l-2 border-primary pl-4">Deploy your latest creation to the global event terminal. Ensure all technical specifications are met for high-performance integration.</p>
+</div>
+<!-- Registration Form Layout -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Form Column -->
+<div class="col-span-12 lg:col-span-8">
+<form class="space-y-8">
+<div class="space-y-2">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant">Game Title</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant/20 focus:border-primary focus:ring-0 text-on-surface px-4 py-3 placeholder:text-surface-container-highest transition-colors" placeholder="e.g. Cyber Runner 2077" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant">Description</label>
+<textarea class="w-full bg-surface-container-lowest border border-outline-variant/20 focus:border-primary focus:ring-0 text-on-surface px-4 py-3 placeholder:text-surface-container-highest transition-colors resize-none" placeholder="Detailed game mechanics and instructions..." rows="8"></textarea>
+</div>
+<div class="space-y-2">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant">Upload Cover Image</label>
+<div class="border-2 border-dashed border-outline-variant/30 bg-surface-container-low hover:bg-surface-container-high transition-colors group p-8 flex flex-col items-center justify-center text-center cursor-pointer">
+<span class="material-symbols-outlined text-4xl text-on-surface-variant group-hover:text-primary mb-4">cloud_upload</span>
+<p class="text-sm font-medium text-on-surface">Drag and drop game art here</p>
+<p class="text-xs text-on-surface-variant mt-1">PNG, JPG up to 10MB (16:9 Recommended)</p>
+</div>
+</div>
+<div class="pt-8 flex items-center justify-end gap-6 border-t border-outline-variant/15">
+<button class="text-on-surface-variant hover:text-on-surface font-bold uppercase text-xs tracking-widest transition-colors" type="button">Cancel</button>
+<button class="bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed font-black px-10 py-4 uppercase text-sm tracking-tighter active:scale-95 transition-transform" type="submit">Register Game</button>
+</div>
+</form>
+</div>
+<!-- Guidelines Column -->
+<div class="col-span-12 lg:col-span-4 space-y-6">
+<div class="bg-surface-container-low p-8 border-l-4 border-primary">
+<h3 class="font-headline text-lg font-bold text-on-surface mb-4 uppercase">Registration Specs</h3>
+<ul class="space-y-4">
+<li class="flex gap-3">
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<p class="text-xs text-on-surface-variant leading-relaxed"><strong class="text-on-surface">Resolution:</strong> Assets must be high-fidelity (min 1920x1080).</p>
+</li>
+<li class="flex gap-3">
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<p class="text-xs text-on-surface-variant leading-relaxed"><strong class="text-on-surface">Format:</strong> Web-ready packages only (WebGL/WASM).</p>
+</li>
+<li class="flex gap-3">
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<p class="text-xs text-on-surface-variant leading-relaxed"><strong class="text-on-surface">Review:</strong> Submission enters queue for technical audit immediately after registration.</p>
+</li>
+</ul>
+</div>
+<div class="bg-surface-container-lowest p-8 border border-outline-variant/10">
+<h4 class="text-xs font-bold uppercase tracking-widest text-primary mb-4">Preview</h4>
+<div class="aspect-video bg-surface-container-high flex items-center justify-center relative group overflow-hidden">
+<img class="absolute inset-0 w-full h-full object-cover opacity-30 grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Dark futuristic electronic hardware aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQ9NNQ-CYDqz7lFsyYUSS_kZfjZrPZhCRK4NdCDBfGUNg-P0roJHyAJJttg9KIE3yiXHVTKeduXODEUbOlnP7sFSSnOTav2Jf_jpbHGhHOwuwSCa2HIetcyQVeyYglw85AwGajddwqu0Jh9CATtEKIQmRWLtMpo8Tcu5sLgnt6sY331XFsBETqPY3Gr9E-mC-pI236FdtqzS7wRnKwsLhm3841mHVzLDp4C-18frHFKB-9DUgnnxVcvrI7Wc9w0X0OFke3CyKVdks"/>
+<div class="z-10 text-center px-4">
+<span class="material-symbols-outlined text-4xl mb-2 text-on-surface-variant">image_not_supported</span>
+<p class="text-xs font-bold uppercase tracking-tighter text-on-surface">Live Card Preview</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<footer class="bg-background text-[#E53935] font-['Inter'] text-xs tracking-wide uppercase w-full flex flex-col items-center justify-center gap-4 mt-auto py-8 border-t border-[#5B403D]/15">
+<div class="flex gap-8">
+<a class="text-[#E4BEB9] hover:text-[#E5E2E1] opacity-80 hover:opacity-100 transition-opacity" href="#">Event Info</a>
+<a class="text-[#E4BEB9] hover:text-[#E5E2E1] opacity-80 hover:opacity-100 transition-opacity" href="#">Support</a>
+<a class="text-[#E4BEB9] hover:text-[#E5E2E1] opacity-80 hover:opacity-100 transition-opacity" href="#">Privacy</a>
+</div>
+<p class="text-[#E4BEB9] opacity-60">© 2024 Developer's Day. Built for High-Octane Precision.</p>
+</footer>
+</main>
+</div>
+</body></html>

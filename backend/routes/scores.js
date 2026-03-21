@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { supabase } = require('../config/db');
+const { minigameApiKeyAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -33,6 +34,7 @@ router.post(
       .isFloat({ min: 0 })
       .withMessage('playTime must be a non-negative number'),
   ],
+  minigameApiKeyAuth({ requireGameIdFromBody: true }),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -44,25 +46,25 @@ router.post(
     const parsedPlayTime = Number(playTime);
 
     try {
-      // Verify the user exists
-      const { data: user, error: userError } = await supabase
-        .from('users')
+      // Verify the minigame player exists
+      const { data: player, error: playerError } = await supabase
+        .from('Participant')
         .select('id')
-        .eq('user_code', userCode)
+        .eq('minigameCode', userCode)
         .maybeSingle();
 
-      if (userError) {
-        console.error(userError);
+      if (playerError) {
+        console.error(playerError);
         return res.status(500).json({ message: 'Server error' });
       }
 
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
+      if (!player) {
+        return res.status(404).json({ message: 'Minigame player not found' });
       }
 
       // Verify the game is registered and active
       const { data: game, error: gameError } = await supabase
-        .from('minigames')
+        .from('Minigame')
         .select('id, is_active')
         .eq('id', gameId)
         .maybeSingle();
@@ -81,7 +83,7 @@ router.post(
 
       // Upsert: one row per (userCode, gameId) – always overwrite with latest submission
       const { data: savedScore, error } = await supabase
-        .from('scores')
+        .from('Score')
         .upsert(
           {
             user_code: userCode,
@@ -113,19 +115,35 @@ router.post(
  * GET /api/scores/leaderboard/:gameId
  *
  * Returns the ordered scoreboard for a specific minigame.
- * Each user appears once with their personal best score.
+ * Each minigame player appears once with their personal best score.
  * Sorted by score descending; ties broken by shortest playTime.
  *
- * Optional query param: ?limit=N  (omit for full list)
+ * Optional query param: ?limit=N
+ * - limit is a positive integer => return top N ranks
+ * - limit is null/empty/omitted => return all ranked players
  */
 router.get('/leaderboard/:gameId', async (req, res) => {
   try {
     const { gameId } = req.params;
-    const limitParam = parseInt(req.query.limit, 10);
-    const hasLimit = !isNaN(limitParam) && limitParam > 0;
+    const rawLimit = req.query.limit;
+    const noLimitRequested =
+      rawLimit === undefined ||
+      rawLimit === null ||
+      rawLimit === '' ||
+      String(rawLimit).toLowerCase() === 'null';
+
+    let limitValue = null;
+    if (!noLimitRequested) {
+      limitValue = Number(rawLimit);
+      if (!Number.isInteger(limitValue) || limitValue <= 0) {
+        return res
+          .status(400)
+          .json({ message: 'limit must be a positive integer or null' });
+      }
+    }
 
     const { data: game, error: gameError } = await supabase
-      .from('minigames')
+      .from('Minigame')
       .select('id, name, is_active')
       .eq('id', gameId)
       .maybeSingle();
@@ -139,17 +157,17 @@ router.get('/leaderboard/:gameId', async (req, res) => {
       return res.status(404).json({ message: 'Minigame not found' });
     }
 
-    // One row per user per game – simple select + sort
+    // One row per player per game – simple select + sort
     let query = supabase
-      .from('scores')
+      .from('Score')
       .select('user_code, score, play_time, updated_at')
       .eq('game_id', gameId)
       .order('score', { ascending: false })
       .order('play_time', { ascending: true })
       .order('updated_at', { ascending: true });
 
-    if (hasLimit) {
-      query = query.limit(limitParam);
+    if (limitValue !== null) {
+      query = query.limit(limitValue);
     }
 
     const { data: board, error } = await query;
@@ -182,9 +200,9 @@ router.get('/leaderboard/:gameId', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     let query = supabase
-      .from('scores')
+      .from('Score')
       .select(
-        'id, user_code, game_id, score, play_time, metadata, created_at, updated_at, minigames(name)'
+        'id, user_code, game_id, score, play_time, metadata, created_at, updated_at, Minigame(name)'
       )
       .order('updated_at', { ascending: false });
 
@@ -204,7 +222,7 @@ router.get('/', async (req, res) => {
 
     const response = (scores || []).map((row) => ({
       ...mapScore(row),
-      game: row.minigames ? { name: row.minigames.name } : null,
+      game: row.Minigame ? { name: row.Minigame.name } : null,
     }));
 
     return res.json(response);

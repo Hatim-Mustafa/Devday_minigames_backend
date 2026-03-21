@@ -7,17 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userCode  String   @unique @map("user_code")
-  username  String
-  metadata  Json     @default("{}")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+model Participant {
+  id           String  @id @default(uuid())
+  userId       String  @unique
+  cnic         String  @unique @db.VarChar(15)
+  email        String  @unique @db.VarChar(255)
+  fullName     String  @db.VarChar(100)
+  phone        String? @db.VarChar(20)
+  institution  String? @db.VarChar(200)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  rollNumber   String? @db.VarChar(20)
+  minigameCode String? @unique @db.VarChar(20)
 
   scores Score[]
 
-  @@map("users")
+  @@index([cnic])
+  @@index([email])
 }
 
 model Minigame {
@@ -25,18 +31,18 @@ model Minigame {
   name        String   @unique
   description String   @default("")
   isActive    Boolean  @default(true) @map("is_active")
+  apiKeyHash  String?  @unique @map("api_key_hash")
+  apiKeyPrefix String? @map("api_key_prefix")
   metadata    Json     @default("{}")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   scores Score[]
-
-  @@map("minigames")
 }
 
 model Score {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userCode  String   @map("user_code")
+  userCode  String   @db.VarChar(20) @map("user_code")
   gameId    String   @db.Uuid @map("game_id")
   score     Float
   playTime  Float    @map("play_time")
@@ -44,10 +50,9 @@ model Score {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user User     @relation(fields: [userCode], references: [userCode], onDelete: Cascade)
-  game Minigame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  participant Participant @relation(fields: [userCode], references: [minigameCode], onDelete: Restrict, onUpdate: Cascade)
+  game        Minigame    @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@unique([userCode, gameId])
   @@index([gameId, score(sort: Desc), playTime(sort: Asc)])
-  @@map("scores")
 }

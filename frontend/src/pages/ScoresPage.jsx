@@ -65,9 +65,9 @@ export default function ScoresPage() {
           </thead>
           <tbody>
             {scores.map((s) => (
-              <tr key={s._id}>
+              <tr key={s.id}>
                 <td>{s.userCode}</td>
-                <td>{s.gameId?.name ?? s.gameId}</td>
+                <td>{s.game?.name ?? s.gameId}</td>
                 <td>{s.score}</td>
                 <td>{new Date(s.createdAt).toLocaleString()}</td>
               </tr>

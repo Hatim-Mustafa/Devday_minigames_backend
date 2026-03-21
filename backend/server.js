@@ -34,9 +34,9 @@ const loginLimiter = rateLimit({
 // --------------------------------------------------
 // Routes
 // --------------------------------------------------
-app.use('/api/users', require('./routes/users'));
 app.use('/api/scores', require('./routes/scores'));
 app.use('/api/minigames', require('./routes/minigames'));
+app.use('/api/participants', require('./routes/participants'));
 app.use('/api/admin/login', loginLimiter);
 app.use('/api/admin', require('./routes/admin'));
 

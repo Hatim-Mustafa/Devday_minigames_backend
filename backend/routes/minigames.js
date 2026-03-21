@@ -2,6 +2,11 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { supabase } = require('../config/db');
 const { adminAuth } = require('../middleware/auth');
+const {
+  generateApiKey,
+  hashApiKey,
+  getApiKeyPrefix,
+} = require('../utils/apiKey');
 
 const router = express.Router();
 
@@ -10,6 +15,8 @@ const mapMinigame = (row) => ({
   name: row.name,
   description: row.description,
   isActive: row.is_active,
+  hasApiKey: Boolean(row.api_key_hash),
+  apiKeyPrefix: row.api_key_prefix || null,
   metadata: row.metadata,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -23,7 +30,7 @@ const mapMinigame = (row) => ({
 router.get('/', async (_req, res) => {
   try {
     const { data: games, error } = await supabase
-      .from('minigames')
+      .from('Minigame')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -46,7 +53,7 @@ router.get('/', async (_req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { data: game, error } = await supabase
-      .from('minigames')
+      .from('Minigame')
       .select('*')
       .eq('id', req.params.id)
       .maybeSingle();
@@ -82,10 +89,13 @@ router.post(
     }
 
     const { name, description, isActive, metadata } = req.body;
+    const generatedApiKey = generateApiKey();
+    const generatedApiKeyHash = hashApiKey(generatedApiKey);
+    const generatedApiKeyPrefix = getApiKeyPrefix(generatedApiKey);
 
     try {
       const { data: existing, error: existingError } = await supabase
-        .from('minigames')
+        .from('Minigame')
         .select('id')
         .eq('name', name)
         .maybeSingle();
@@ -102,12 +112,16 @@ router.post(
       }
 
       const { data: game, error } = await supabase
-        .from('minigames')
+        .from('Minigame')
         .insert({
           name,
           description: description || '',
           is_active: typeof isActive === 'boolean' ? isActive : true,
+          api_key_hash: generatedApiKeyHash,
+          api_key_prefix: generatedApiKeyPrefix,
           metadata: metadata || {},
+           created_at: new Date().toISOString(),
+           updated_at: new Date().toISOString(),
         })
         .select('*')
         .single();
@@ -117,7 +131,10 @@ router.post(
         return res.status(500).json({ message: 'Server error' });
       }
 
-      return res.status(201).json(mapMinigame(game));
+      return res.status(201).json({
+        ...mapMinigame(game),
+        apiKey: generatedApiKey,
+      });
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: 'Server error' });
@@ -146,7 +163,7 @@ router.put('/:id', adminAuth, async (req, res) => {
     }
 
     const { data: game, error } = await supabase
-      .from('minigames')
+      .from('Minigame')
       .update(updatePayload)
       .eq('id', req.params.id)
       .select('*')
@@ -174,7 +191,7 @@ router.put('/:id', adminAuth, async (req, res) => {
 router.delete('/:id', adminAuth, async (req, res) => {
   try {
     const { data: game, error } = await supabase
-      .from('minigames')
+      .from('Minigame')
       .delete()
       .eq('id', req.params.id)
       .select('id')

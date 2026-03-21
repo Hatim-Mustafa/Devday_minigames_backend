@@ -4,6 +4,7 @@
  * client so no real DB connection is required.
  */
 const request = require('supertest');
+const { hashApiKey } = require('../utils/apiKey');
 
 // Set required env vars before loading the app
 process.env.JWT_SECRET = 'test_jwt_secret';
@@ -21,6 +22,9 @@ jest.mock('../config/db', () => ({
 }));
 
 const app = require('../server');
+
+const TEST_API_KEY = 'mgk_test_api_key';
+const TEST_API_KEY_HASH = hashApiKey(TEST_API_KEY);
 
 const buildMaybeSingleQuery = (result) => {
   const query = {
@@ -71,48 +75,33 @@ describe('POST /api/admin/login', () => {
   });
 });
 
-describe('GET /api/users/username/:userCode', () => {
-  it('returns username for a known userCode', async () => {
-    mockSupabase.from.mockImplementation((table) => {
-      if (table === 'users') {
-        return buildMaybeSingleQuery({
-          data: { user_code: 'U001', username: 'Alice' },
-          error: null,
-        });
-      }
-      throw new Error(`Unexpected table: ${table}`);
-    });
-
-    const res = await request(app).get('/api/users/username/U001');
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({ userCode: 'U001', username: 'Alice' });
-  });
-
-  it('returns 404 for an unknown userCode', async () => {
-    mockSupabase.from.mockImplementation((table) => {
-      if (table === 'users') {
-        return buildMaybeSingleQuery({ data: null, error: null });
-      }
-      throw new Error(`Unexpected table: ${table}`);
-    });
-
-    const res = await request(app).get('/api/users/username/UNKNOWN');
-    expect(res.statusCode).toBe(404);
-  });
-});
-
 describe('POST /api/scores', () => {
   it('upserts a score and returns 200', async () => {
     mockSupabase.from.mockImplementation((table) => {
-      if (table === 'users') {
-        return buildMaybeSingleQuery({ data: { id: 'user-1' }, error: null });
+      if (table === 'minigames') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn((column, value) => {
+              const result =
+                column === 'api_key_hash' && value === TEST_API_KEY_HASH
+                  ? { id: 'game-1', name: 'Game 1', is_active: true }
+                  : column === 'id' && value === 'game-1'
+                    ? { id: 'game-1', is_active: true }
+                    : null;
+
+              return {
+                maybeSingle: jest.fn().mockResolvedValue({
+                  data: result,
+                  error: null,
+                }),
+              };
+            }),
+          })),
+        };
       }
 
-      if (table === 'minigames') {
-        return buildMaybeSingleQuery({
-          data: { id: 'game-1', is_active: true },
-          error: null,
-        });
+      if (table === 'participants') {
+        return buildMaybeSingleQuery({ data: { id: 'user-1' }, error: null });
       }
 
       if (table === 'scores') {
@@ -134,12 +123,15 @@ describe('POST /api/scores', () => {
       throw new Error(`Unexpected table: ${table}`);
     });
 
-    const res = await request(app).post('/api/scores').send({
-      userCode: 'U001',
-      gameId: 'game-1',
-      score: 42,
-      playTime: 30,
-    });
+    const res = await request(app)
+      .post('/api/scores')
+      .set('x-api-key', TEST_API_KEY)
+      .send({
+        userCode: 'U001',
+        gameId: 'game-1',
+        score: 42,
+        playTime: 30,
+      });
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('score', 42);

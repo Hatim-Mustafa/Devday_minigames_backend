@@ -10,14 +10,19 @@ Central backend for the numerous minigames that will be played on the event day.
 └── frontend/   React admin panel (Vite)
 ```
 
-Each minigame only needs to make **two API calls** to this backend:
+Each minigame needs to make **one API call** to this backend:
 
 | Call | Endpoint | Purpose |
 |------|----------|---------|
-| 1 | `GET /api/users/username/:userCode` | Look up a participant's username from their badge/QR code |
-| 2 | `POST /api/scores` | Submit a score for a participant |
+| 1 | `POST /api/scores` | Submit a score for a participant |
 
-The admin panel is used to register games and manage participants; it has no coupling with any individual minigame's frontend.
+Both calls require the minigame API key in request headers:
+
+```http
+x-api-key: <MINIGAME_API_KEY>
+```
+
+The admin panel is used to register and manage minigames and inspect scores; it has no coupling with any individual minigame's frontend.
 
 ---
 
@@ -54,19 +59,11 @@ npm start              # production
 
 ### Public endpoints (used by minigames)
 
-#### Get username from user code
-```
-GET /api/users/username/:userCode
-```
-Response `200 OK`:
-```json
-{ "userCode": "U001", "username": "Alice" }
-```
-
 #### Submit a score
 ```
 POST /api/scores
 Content-Type: application/json
+x-api-key: <MINIGAME_API_KEY>
 
 {
   "userCode": "U001",
@@ -100,11 +97,9 @@ PUT    /api/minigames/:id      # update        [admin]
 DELETE /api/minigames/:id      # remove        [admin]
 ```
 
-#### Users / Participants
-```
-GET  /api/users     # list all
-POST /api/users     # add participant  { userCode, username }
-```
+When a minigame is created via `POST /api/minigames`, the response includes a
+newly generated `apiKey`. Share that key securely with the minigame developer.
+Only the hash is stored in the database.
 
 #### Scores
 ```
@@ -126,7 +121,6 @@ npm run dev            # http://localhost:5173
 
 The admin panel provides:
 - **Minigames** – register, activate/deactivate, and delete minigames
-- **Participants** – add and view participants
 - **Scores** – view and filter score submissions
 
 ---
@@ -142,17 +136,10 @@ npm test
 
 ## Data Models
 
-### User
-| Field | Type | Description |
-|-------|------|-------------|
-| `userCode` | String (unique) | Badge / QR code identifier |
-| `username` | String | Display name |
-| `metadata` | Mixed | Any additional participant info |
-
 ### Score
 | Field | Type | Description |
 |-------|------|-------------|
-| `userCode` | String | Reference to User.userCode |
+| `userCode` | String | Participant minigame code from the main platform database |
 | `gameId` | UUID | Reference to Minigame |
 | `score` | Number | Numeric score value |
 | `playTime` | Number | Completion time (lower is better for tie-breaks) |

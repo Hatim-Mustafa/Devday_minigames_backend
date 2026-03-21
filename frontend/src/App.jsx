@@ -1,39 +1,122 @@
-import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from 'react-router-dom';
+import HomePage from './pages/HomePage';
+import PublicGamesPage from './pages/PublicGamesPage';
 import LoginPage from './pages/LoginPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 import MinigamesPage from './pages/MinigamesPage';
-import UsersPage from './pages/UsersPage';
+import GamesGalleryPage from './pages/GamesGalleryPage';
 import ScoresPage from './pages/ScoresPage';
 import NavBar from './components/NavBar';
 import './App.css';
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => !!localStorage.getItem('adminToken')
-  );
+function AppRoutes() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isAuthenticated = !!localStorage.getItem('adminToken');
+  const isAdminShellPage =
+    location.pathname === '/admin/minigames/new' ||
+    location.pathname === '/admin/dashboard' ||
+    location.pathname === '/admin/games';
 
-  const handleLogin = () => setIsAuthenticated(true);
+  const handleLogin = () => {
+    navigate('/admin/dashboard');
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
-    setIsAuthenticated(false);
+    navigate('/');
   };
 
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />;
-  }
+  return (
+    <main className={isAdminShellPage ? 'app-main-full' : ''}>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/games" element={<PublicGamesPage />} />
+        <Route
+          path="/login"
+          element={
+            isAuthenticated ? (
+              <Navigate to="/admin/dashboard" replace />
+            ) : (
+              <LoginPage onLogin={handleLogin} />
+            )
+          }
+        />
 
+        <Route
+          path="/admin/dashboard"
+          element={
+            isAuthenticated ? (
+              <AdminDashboardPage />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/admin/minigames/new"
+          element={
+            isAuthenticated ? (
+              <MinigamesPage />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/admin/games"
+          element={
+            isAuthenticated ? (
+              <GamesGalleryPage />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/admin/scores"
+          element={
+            isAuthenticated ? (
+              <>
+                <NavBar onLogout={handleLogout} />
+                <ScoresPage />
+              </>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={<Navigate to="/admin/dashboard" replace />}
+        />
+
+        <Route
+          path="/admin/minigames"
+          element={<Navigate to="/admin/dashboard" replace />}
+        />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </main>
+  );
+}
+
+function App() {
   return (
     <BrowserRouter>
-      <NavBar onLogout={handleLogout} />
-      <main>
-        <Routes>
-          <Route path="/" element={<Navigate to="/minigames" replace />} />
-          <Route path="/minigames" element={<MinigamesPage />} />
-          <Route path="/users" element={<UsersPage />} />
-          <Route path="/scores" element={<ScoresPage />} />
-        </Routes>
-      </main>
+      <AppRoutes />
     </BrowserRouter>
   );
 }
