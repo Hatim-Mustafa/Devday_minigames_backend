@@ -21,7 +21,7 @@ function AppRoutes() {
   const location = useLocation();
   const isAuthenticated = !!localStorage.getItem('adminToken');
   const isAdminShellPage =
-    location.pathname === '/admin/minigames/new' ||
+    location.pathname.startsWith('/admin/minigames') ||
     location.pathname === '/admin/dashboard' ||
     location.pathname === '/admin/games';
 
@@ -63,6 +63,17 @@ function AppRoutes() {
 
         <Route
           path="/admin/minigames/new"
+          element={
+            isAuthenticated ? (
+              <MinigamesPage />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/admin/minigames/:id/edit"
           element={
             isAuthenticated ? (
               <MinigamesPage />

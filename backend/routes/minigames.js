@@ -1,5 +1,6 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
+const multer = require('multer');
 const { supabase } = require('../config/db');
 const { adminAuth } = require('../middleware/auth');
 const {
@@ -8,12 +9,17 @@ const {
   getApiKeyPrefix,
 } = require('../utils/apiKey');
 
+// Configure multer for in-memory file upload
+const upload = multer({ storage: multer.memoryStorage() });
+
 const router = express.Router();
 
 const mapMinigame = (row) => ({
   id: row.id,
   name: row.name,
   description: row.description,
+  imageUrl: row.image_url,
+  location: row.location,
   isActive: row.is_active,
   hasApiKey: Boolean(row.api_key_hash),
   apiKeyPrefix: row.api_key_prefix || null,
@@ -75,12 +81,14 @@ router.get('/:id', async (req, res) => {
 
 /**
  * POST /api/minigames  [Admin only]
- * Register a new minigame.
+ * Register a new minigame with optional image.
  * Body: { name, description?, isActive?, metadata? }
+ * File: image (optional multipart form-data)
  */
 router.post(
   '/',
   adminAuth,
+  upload.single('image'),
   [body('name').notEmpty().withMessage('name is required').trim()],
   async (req, res) => {
     const errors = validationResult(req);
@@ -111,6 +119,50 @@ router.post(
           .json({ message: 'A minigame with that name already exists' });
       }
 
+      // Handle image upload if provided
+      let imageUrl = null;
+      if (req.file) {
+        const allowedTypes = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,image/png,image/webp').split(',');
+        const maxSize = (parseInt(process.env.MAX_IMAGE_SIZE_MB, 10) || 5) * 1024 * 1024;
+
+        if (!allowedTypes.includes(req.file.mimetype)) {
+          return res.status(400).json({ message: 'Invalid image type. Allowed: jpeg, png, webp' });
+        }
+
+        if (req.file.buffer.length > maxSize) {
+          return res.status(400).json({ message: `Image size exceeds ${process.env.MAX_IMAGE_SIZE_MB || 5}MB limit` });
+        }
+
+        try {
+          const bucketName = process.env.SUPABASE_STORAGE_BUCKET || 'minigame-images';
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${req.file.originalname}`;
+          const filePath = `${fileName}`;
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from(bucketName)
+            .upload(filePath, req.file.buffer, {
+              contentType: req.file.mimetype,
+              cacheControl: '3600',
+              upsert: false,
+            });
+
+          if (uploadError) {
+            console.error('Image upload error:', uploadError);
+            return res.status(500).json({ message: 'Failed to upload image' });
+          }
+
+          // Get public URL
+          const { data: publicUrlData } = supabase.storage
+            .from(bucketName)
+            .getPublicUrl(filePath);
+
+          imageUrl = publicUrlData.publicUrl;
+        } catch (uploadErr) {
+          console.error('Image upload exception:', uploadErr);
+          return res.status(500).json({ message: 'Failed to upload image' });
+        }
+      }
+
       const { data: game, error } = await supabase
         .from('Minigame')
         .insert({
@@ -119,9 +171,11 @@ router.post(
           is_active: typeof isActive === 'boolean' ? isActive : true,
           api_key_hash: generatedApiKeyHash,
           api_key_prefix: generatedApiKeyPrefix,
+          image_url: imageUrl,
+          location: req.body.location || null,
           metadata: metadata || {},
-           created_at: new Date().toISOString(),
-           updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .select('*')
         .single();
@@ -144,9 +198,9 @@ router.post(
 
 /**
  * PUT /api/minigames/:id  [Admin only]
- * Update an existing minigame registration.
+ * Update an existing minigame registration with optional image.
  */
-router.put('/:id', adminAuth, async (req, res) => {
+router.put('/:id', adminAuth, upload.single('image'), async (req, res) => {
   try {
     const updatePayload = {};
     if (Object.prototype.hasOwnProperty.call(req.body, 'name')) {
@@ -160,6 +214,52 @@ router.put('/:id', adminAuth, async (req, res) => {
     }
     if (Object.prototype.hasOwnProperty.call(req.body, 'metadata')) {
       updatePayload.metadata = req.body.metadata;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'location')) {
+      updatePayload.location = req.body.location;
+    }
+
+    // Handle image upload if provided
+    if (req.file) {
+      const allowedTypes = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,image/png,image/webp').split(',');
+      const maxSize = (parseInt(process.env.MAX_IMAGE_SIZE_MB, 10) || 5) * 1024 * 1024;
+
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ message: 'Invalid image type. Allowed: jpeg, png, webp' });
+      }
+
+      if (req.file.buffer.length > maxSize) {
+        return res.status(400).json({ message: `Image size exceeds ${process.env.MAX_IMAGE_SIZE_MB || 5}MB limit` });
+      }
+
+      try {
+        const bucketName = process.env.SUPABASE_STORAGE_BUCKET || 'minigame-images';
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${req.file.originalname}`;
+        const filePath = `${fileName}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, req.file.buffer, {
+            contentType: req.file.mimetype,
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('Image upload error:', uploadError);
+          return res.status(500).json({ message: 'Failed to upload image' });
+        }
+
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from(bucketName)
+          .getPublicUrl(filePath);
+
+        updatePayload.image_url = publicUrlData.publicUrl;
+      } catch (uploadErr) {
+        console.error('Image upload exception:', uploadErr);
+        return res.status(500).json({ message: 'Failed to upload image' });
+      }
     }
 
     const { data: game, error } = await supabase
@@ -178,6 +278,46 @@ router.put('/:id', adminAuth, async (req, res) => {
       return res.status(404).json({ message: 'Minigame not found' });
     }
     return res.json(mapMinigame(game));
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * POST /api/minigames/:id/rotate-key  [Admin only]
+ * Generate a new API key for a minigame, invalidating the old one.
+ */
+router.post('/:id/rotate-key', adminAuth, async (req, res) => {
+  try {
+    const newApiKey = generateApiKey();
+    const newApiKeyHash = hashApiKey(newApiKey);
+    const newApiKeyPrefix = getApiKeyPrefix(newApiKey);
+
+    const { data: game, error } = await supabase
+      .from('Minigame')
+      .update({
+        api_key_hash: newApiKeyHash,
+        api_key_prefix: newApiKeyPrefix,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', req.params.id)
+      .select('*')
+      .maybeSingle();
+
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Server error' });
+    }
+
+    if (!game) {
+      return res.status(404).json({ message: 'Minigame not found' });
+    }
+
+    return res.json({
+      ...mapMinigame(game),
+      apiKey: newApiKey,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });

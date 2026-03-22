@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
-import developerDayLogo from '../assets/logo.png';
+import PublicTopNav from '../components/PublicTopNav';
 
 export default function HomePage() {
   const [games, setGames] = useState([]);
@@ -96,40 +96,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background text-on-surface">
-      <header className="fixed top-0 z-50 flex h-16 w-full items-center justify-between border-none bg-[#131313] px-6">
-        <div className="flex items-center gap-4">
-          <img
-            alt="Event Logo"
-            className="h-8 w-8 object-contain"
-            src={developerDayLogo}
-          />
-          <span className="font-headline text-2xl font-black uppercase tracking-tighter text-[#E53935]">
-            Developer&apos;s Day
-          </span>
-        </div>
-        <nav className="hidden items-center gap-8 md:flex">
-          <Link
-            className="border-b-2 border-[#E53935] font-headline font-bold uppercase tracking-tighter text-[#E5E2E1]"
-            to="/"
-          >
-            Leaderboard
-          </Link>
-          <Link
-            className="px-3 py-1 font-headline font-bold uppercase tracking-tighter text-[#E4BEB9] transition-colors duration-200 hover:bg-[#2A2A2A]"
-            to="/games"
-          >
-            Games
-          </Link>
-        </nav>
-        <div className="flex items-center gap-4">
-          <Link
-            className="cta-gradient inline-block px-6 py-2 font-body text-sm font-bold uppercase text-[#400009] transition-transform active:scale-95"
-            to="/login"
-          >
-            Admin Access
-          </Link>
-        </div>
-      </header>
+      <PublicTopNav />
 
       <main className="flex-grow pt-16">
         <section className="leaderboard-hero-gradient relative overflow-hidden border-b border-outline-variant/15 px-6 py-20">
@@ -159,8 +126,8 @@ export default function HomePage() {
 
         <section id="leaderboard" className="bg-surface px-6 py-12">
           <div className="mx-auto max-w-7xl">
-            <div className="mb-12 flex flex-col items-end justify-between gap-6 md:flex-row">
-              <div>
+            <div className="mb-12 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
+              <div className="text-left md:text-left">
                 <h2 className="font-headline text-3xl font-bold uppercase tracking-tight text-on-surface">
                   Top Performers
                 </h2>
@@ -355,10 +322,10 @@ export default function HomePage() {
 
       </main>
 
-      <footer className="mt-auto flex w-full flex-col items-center justify-center gap-4 border-t border-[#5B403D]/15 bg-[#0E0E0E] py-8">
-        <div className="mb-2 flex gap-8">
+      <footer className="mt-auto flex w-full flex-col items-center justify-center gap-2 border-t border-[#5B403D]/15 bg-[#0E0E0E] py-5 sm:gap-4 sm:py-8">
+        <div className="mb-1 flex gap-8 sm:mb-2">
         </div>
-        <p className="font-body text-xs uppercase tracking-wide text-[#E4BEB9] opacity-80">
+        <p className="font-body text-[10px] uppercase tracking-wide text-[#E4BEB9] opacity-80 sm:text-xs">
           © 2024 Developer&apos;s Day. Built for High-Octane Precision.
         </p>
       </footer>

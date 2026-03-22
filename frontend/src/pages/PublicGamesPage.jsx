@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
-import developerDayLogo from '../assets/logo.png';
+import PublicTopNav from '../components/PublicTopNav';
 
 const GALLERY_IMAGES = [
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBW5rgFNVYaVr4QzsrHxYRyv8XUzC6zONL8RROJPyau2uqs1goOyiOYyNNc2SXta_XJ1vYvQwn5KbZC7yVWbieERrZJJdUI5PAJvl2YhKqY3ohGxzmIb5LRyjLyEG0W_W5692x6BKTY_17hDL5x9XjVlxg2FI4wNQDKe8IGSxtT7DAHaW5wb3qv3tQ1OGtNymIYa2G_rE4kbU2fGmfK9gq76iO8d13nRXcHRZn4110byB_BXMBSozjXysw0R2drie3ZdTT5UjKOcd0',
@@ -32,40 +32,7 @@ export default function PublicGamesPage() {
 
   return (
     <div className="dark min-h-screen bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-fixed">
-      <header className="fixed top-0 z-50 flex h-16 w-full items-center justify-between border-none bg-[#131313] px-6">
-        <div className="flex items-center gap-4">
-          <img
-            alt="Event Logo"
-            className="h-8 w-8 object-contain"
-            src={developerDayLogo}
-          />
-          <span className="font-headline text-2xl font-black uppercase tracking-tighter text-[#E53935]">
-            Developer&apos;s Day
-          </span>
-        </div>
-        <nav className="hidden items-center gap-8 md:flex">
-          <Link
-            className="px-3 py-1 font-headline font-bold uppercase tracking-tighter text-[#E4BEB9] transition-colors duration-200 hover:bg-[#2A2A2A]"
-            to="/"
-          >
-            Leaderboard
-          </Link>
-          <Link
-            className="border-b-2 border-[#E53935] font-headline font-bold uppercase tracking-tighter text-[#E5E2E1]"
-            to="/games"
-          >
-            Games
-          </Link>
-        </nav>
-        <div className="flex items-center gap-4">
-          <Link
-            className="cta-gradient inline-block px-6 py-2 font-body text-sm font-bold uppercase text-[#400009] transition-transform active:scale-95"
-            to="/login"
-          >
-            Admin Access
-          </Link>
-        </div>
-      </header>
+      <PublicTopNav />
 
       <main className="no-scrollbar overflow-y-auto bg-background pt-16">
         <section className="leaderboard-hero-gradient relative overflow-hidden border-b border-outline-variant/15 px-6 py-20">
@@ -117,8 +84,8 @@ export default function PublicGamesPage() {
                   <div className="h-48 w-full overflow-hidden bg-surface-container-low md:h-auto md:w-48">
                     <img
                       alt={game.name}
-                      className="h-full w-full object-cover grayscale transition-all duration-500 group-hover:scale-105 group-hover:grayscale-0"
-                      src={GALLERY_IMAGES[index % GALLERY_IMAGES.length]}
+                      className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105"
+                      src={game.imageUrl || GALLERY_IMAGES[index % GALLERY_IMAGES.length]}
                     />
                   </div>
                   <div className="flex flex-1 flex-col justify-between p-6">
@@ -132,6 +99,12 @@ export default function PublicGamesPage() {
                         {game.description ||
                           'No description available for this deployed module yet.'}
                       </p>
+                      {game.location ? (
+                        <p className="mt-2 flex items-center gap-1 text-xs text-on-surface-variant">
+                          <span className="material-symbols-outlined text-xs">location_on</span>
+                          {game.location}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -147,10 +120,10 @@ export default function PublicGamesPage() {
           </div>
         </section>
       </main>
-      <footer className="mt-auto flex w-full flex-col items-center justify-center gap-4 border-t border-[#5B403D]/15 bg-[#0E0E0E] py-8">
-        <div className="mb-2 flex gap-8">
+      <footer className="mt-auto flex w-full flex-col items-center justify-center gap-2 border-t border-[#5B403D]/15 bg-[#0E0E0E] py-5 sm:gap-4 sm:py-8">
+        <div className="mb-1 flex gap-8 sm:mb-2">
         </div>
-        <p className="font-body text-xs uppercase tracking-wide text-[#E4BEB9] opacity-80">
+        <p className="font-body text-[10px] uppercase tracking-wide text-[#E4BEB9] opacity-80 sm:text-xs">
           © 2024 Developer&apos;s Day. Built for High-Octane Precision.
         </p>
       </footer>

@@ -95,20 +95,11 @@ export default function LoginPage({ onLogin }) {
         </div>
       </main>
 
-      <footer className="flex flex-col items-center justify-center gap-4 border-t border-outline-variant/15 bg-surface-container-lowest py-8">
-        <p className="font-body text-[10px] uppercase tracking-[0.3em] text-on-surface-variant opacity-60">
+      <footer className="flex flex-col items-center justify-center gap-2 border-t border-outline-variant/15 bg-surface-container-lowest py-5 sm:gap-4 sm:py-8">
+        <p className="font-body text-[9px] uppercase tracking-[0.2em] text-on-surface-variant opacity-60 sm:text-[10px] sm:tracking-[0.3em]">
           © 2024 Developer&apos;s Day. Built for High-Octane Precision.
         </p>
-        <div className="flex gap-6">
-          <a className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant opacity-80 transition-opacity hover:text-primary hover:opacity-100" href="#">
-            Event Info
-          </a>
-          <a className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant opacity-80 transition-opacity hover:text-primary hover:opacity-100" href="#">
-            Support
-          </a>
-          <a className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant opacity-80 transition-opacity hover:text-primary hover:opacity-100" href="#">
-            Privacy
-          </a>
+        <div className="flex gap-4 sm:gap-6">
         </div>
       </footer>
     </div>

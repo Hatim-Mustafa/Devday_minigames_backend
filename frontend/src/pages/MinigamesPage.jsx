@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import api from '../api/client';
 
 const DEFAULT_PREVIEW_IMAGE =
@@ -7,15 +7,42 @@ const DEFAULT_PREVIEW_IMAGE =
 
 export default function MinigamesPage() {
   const navigate = useNavigate();
+  const { id: minigameId } = useParams();
+  const isEditMode = Boolean(minigameId);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
   const [coverImage, setCoverImage] = useState(null);
   const [coverPreview, setCoverPreview] = useState('');
   const [formError, setFormError] = useState('');
   const [newApiKey, setNewApiKey] = useState('');
   const [copyMessage, setCopyMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(false);
+
+  useEffect(() => {
+    if (!isEditMode) return;
+
+    const fetchMinigame = async () => {
+      try {
+        setLoadingExisting(true);
+        setFormError('');
+        const res = await api.get(`/minigames/${minigameId}`);
+        const game = res.data || {};
+        setName(game.name || '');
+        setDescription(game.description || '');
+        setLocation(game.location || '');
+        setCoverPreview(game.imageUrl || '');
+      } catch {
+        setFormError('Failed to load minigame details.');
+      } finally {
+        setLoadingExisting(false);
+      }
+    };
+
+    fetchMinigame();
+  }, [isEditMode, minigameId]);
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
@@ -28,11 +55,13 @@ export default function MinigamesPage() {
   const handleCancel = () => {
     setName('');
     setDescription('');
+    setLocation('');
     setCoverImage(null);
     setCoverPreview('');
     setFormError('');
     setCopyMessage('');
     setNewApiKey('');
+    navigate('/admin/dashboard');
   };
 
   const handleLogout = () => {
@@ -47,15 +76,37 @@ export default function MinigamesPage() {
     setSubmitting(true);
 
     try {
-      const res = await api.post('/minigames', { name, description });
-      setNewApiKey(res.data?.apiKey || '');
-      setName('');
-      setDescription('');
-      setCoverImage(null);
-      setCoverPreview('');
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('description', description);
+      if (location) {
+        formData.append('location', location);
+      }
+      if (coverImage) {
+        formData.append('image', coverImage);
+      }
+
+      if (isEditMode) {
+        await api.put(`/minigames/${minigameId}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        navigate('/admin/dashboard');
+      } else {
+        const res = await api.post('/minigames', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        setNewApiKey(res.data?.apiKey || '');
+        setName('');
+        setDescription('');
+        setLocation('');
+        setCoverImage(null);
+        setCoverPreview('');
+      }
     } catch (err) {
       setFormError(
-        err.response?.data?.message || 'Failed to register minigame.'
+        err.response?.data?.message ||
+          (isEditMode ? 'Failed to update minigame.' : 'Failed to register minigame.')
       );
     } finally {
       setSubmitting(false);
@@ -74,115 +125,77 @@ export default function MinigamesPage() {
   };
 
   return (
-    <div className="dark h-screen overflow-hidden bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-fixed">
-      <div className="flex h-screen">
-        {/* <aside className="fixed left-0 top-0 z-40 flex h-full w-64 flex-col border-r border-outline-variant/10 bg-[#0e0e0e] py-0 text-sm font-medium text-[#E53935]">
-          <div className="p-8">
-            <div class="flex items-center gap-4">
-            <span class="font-headline text-xl font-black text-[#E53935] tracking-tighter uppercase">Developer's Day</span>
-            </div>
-            <div className="mt-1 font-headline text-[10px] uppercase tracking-tighter text-neutral-500">
-              MINIGAME_ROOT
-            </div>
-          </div>
+    <div className="dark min-h-screen bg-background text-on-surface font-body">
+      <div className="mx-auto max-w-5xl p-12">
+        <div className="mb-12">
+          <Link
+            to="/admin/dashboard"
+            className="mb-4 flex items-center gap-2 text-primary"
+          >
+            <span className="material-symbols-outlined text-sm">arrow_back</span>
+            <span className="text-xs font-bold uppercase tracking-widest">
+              Back to Dashboard
+            </span>
+          </Link>
+          <h1 className="font-headline text-5xl font-black uppercase leading-none tracking-tighter text-on-surface">
+            {isEditMode ? 'Edit Minigame' : 'Register New Minigame'}
+          </h1>
+          <p className="mt-4 max-w-2xl border-l-2 border-primary pl-4 font-body text-on-surface-variant">
+            {isEditMode
+              ? 'Update configuration for this minigame and apply changes to the registry.'
+              : 'Deploy your latest creation to the global event terminal. Ensure all technical specifications are met for high-performance integration.'}
+          </p>
+        </div>
 
-          <nav className="mt-4 flex-1 space-y-2 px-4">
-            <Link
-              to="/admin/dashboard"
-              className="flex items-center gap-3 px-4 py-3 font-headline uppercase tracking-tighter text-[#E4BEB9] transition-all duration-150 ease-in-out hover:bg-[#2A2A2A]"
-            >
-              <span className="material-symbols-outlined">dashboard</span>
-              <span>Dashboard</span>
-            </Link>
+        <div className="grid grid-cols-12 gap-8">
+          <div className="col-span-12 lg:col-span-8">
+            <form className="space-y-8" onSubmit={handleRegister}>
+              {loadingExisting ? (
+                <p className="text-sm text-on-surface-variant">Loading minigame details…</p>
+              ) : null}
 
-            <Link
-              to="/admin/minigames/new"
-              className="flex items-center gap-3 border-l-4 border-[#E53935] bg-[#1c1b1b] px-4 py-3 font-headline uppercase tracking-tighter text-[#FFB3B3] transition-all duration-150 ease-in-out"
-            >
-              <span className="material-symbols-outlined">sports_esports</span>
-              <span>Games</span>
-            </Link>
-          </nav>
-
-          <div className="mt-auto p-4">
-            <div className="mb-4 flex items-center gap-3 bg-surface-container-low p-4">
-              <div className="flex h-10 w-10 items-center justify-center bg-surface-container-high">
-                <span className="material-symbols-outlined text-on-surface-variant">
-                  person
-                </span>
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant" htmlFor="gameName">
+                  Game Title
+                </label>
+                <input
+                  id="gameName"
+                  className="w-full border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-on-surface transition-colors placeholder:text-surface-container-highest focus:border-primary focus:ring-0"
+                  placeholder="e.g. Cyber Runner 2077"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
               </div>
-              <div className="overflow-hidden">
-                <p className="truncate text-sm font-bold text-on-surface">Admin Avatar</p>
-                <p className="truncate font-headline text-[10px] uppercase text-on-surface-variant/60">
-                  SYS_OP_042
-                </p>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant" htmlFor="gameDesc">
+                  Description
+                </label>
+                <textarea
+                  id="gameDesc"
+                  className="w-full resize-none border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-on-surface transition-colors placeholder:text-surface-container-highest focus:border-primary focus:ring-0"
+                  placeholder="Detailed game mechanics and instructions..."
+                  rows="8"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
               </div>
-            </div>
 
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left font-headline uppercase tracking-tighter text-[#E4BEB9] transition-all duration-150 ease-in-out hover:bg-[#2A2A2A]"
-            >
-              <span className="material-symbols-outlined">logout</span>
-              <span>Logout</span>
-            </button>
-          </div>
-        </aside> */}
-
-        <main className="no-scrollbar flex-1 overflow-y-auto bg-background">
-          <div className="mx-auto max-w-5xl p-12">
-            <div className="mb-12">
-              <Link
-                to="/admin/dashboard"
-                className="mb-4 flex items-center gap-2 text-primary"
-              >
-                <span className="material-symbols-outlined text-sm">arrow_back</span>
-                <span className="text-xs font-bold uppercase tracking-widest">
-                  Back to Dashboard
-                </span>
-              </Link>
-              <h1 className="font-headline text-5xl font-black uppercase leading-none tracking-tighter text-on-surface">
-                Register New Minigame
-              </h1>
-              <p className="mt-4 max-w-2xl border-l-2 border-primary pl-4 font-body text-on-surface-variant">
-                Deploy your latest creation to the global event terminal. Ensure
-                all technical specifications are met for high-performance
-                integration.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-12 gap-8">
-              <div className="col-span-12 lg:col-span-8">
-                <form className="space-y-8" onSubmit={handleRegister}>
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant" htmlFor="gameName">
-                      Game Title
-                    </label>
-                    <input
-                      id="gameName"
-                      className="w-full border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-on-surface transition-colors placeholder:text-surface-container-highest focus:border-primary focus:ring-0"
-                      placeholder="e.g. Cyber Runner 2077"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant" htmlFor="gameDesc">
-                      Description
-                    </label>
-                    <textarea
-                      id="gameDesc"
-                      className="w-full resize-none border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-on-surface transition-colors placeholder:text-surface-container-highest focus:border-primary focus:ring-0"
-                      placeholder="Detailed game mechanics and instructions..."
-                      rows="8"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                    />
-                  </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant" htmlFor="gameLocation">
+                  Location <span className="text-on-surface-variant">(Optional)</span>
+                </label>
+                <input
+                  id="gameLocation"
+                  className="w-full border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-on-surface transition-colors placeholder:text-surface-container-highest focus:border-primary focus:ring-0"
+                  placeholder="e.g. Lab 201, Auditorium, Campus Ground"
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </div>
 
                   <div className="space-y-2">
                     <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant" htmlFor="coverUpload">
@@ -215,7 +228,7 @@ export default function MinigamesPage() {
                     <p className="text-sm text-error">{formError}</p>
                   ) : null}
 
-                  {newApiKey ? (
+                  {newApiKey && !isEditMode ? (
                     <div className="border border-outline-variant/20 bg-surface-container-low p-4">
                       <p className="mb-2 text-xs font-bold uppercase tracking-widest text-primary">
                         New API Key (shown once)
@@ -248,10 +261,16 @@ export default function MinigamesPage() {
                     </button>
                     <button
                       type="submit"
-                      disabled={submitting}
+                      disabled={submitting || loadingExisting}
                       className="!bg-gradient-to-r !from-primary !to-primary-container px-10 py-4 text-sm font-black uppercase tracking-tighter text-on-primary-fixed transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {submitting ? 'Registering…' : 'Register Game'}
+                      {submitting
+                        ? isEditMode
+                          ? 'Updating…'
+                          : 'Registering…'
+                        : isEditMode
+                          ? 'Update Game'
+                          : 'Register Game'}
                     </button>
                   </div>
                 </form>
@@ -309,11 +328,11 @@ export default function MinigamesPage() {
                   </h4>
                   <div className="group relative flex aspect-video items-center justify-center overflow-hidden bg-surface-container-high">
                     <img
-                      className="absolute inset-0 h-full w-full object-cover opacity-30 grayscale transition-all duration-500 group-hover:grayscale-0"
+                      className="absolute inset-0 h-full w-full object-cover opacity-30"
                       src={coverPreview || DEFAULT_PREVIEW_IMAGE}
                       alt="Game preview"
                     />
-                    <div className="z-10 px-4 text-center">
+                    <div className="z-10 px-4 text-center transition-opacity duration-200 group-hover:opacity-0">
                       <span className="material-symbols-outlined mb-2 text-4xl text-on-surface-variant">
                         image_not_supported
                       </span>
@@ -325,7 +344,6 @@ export default function MinigamesPage() {
                 </div>
               </div>
             </div>
-          </div>
 
           <footer className="mt-auto flex w-full flex-col items-center justify-center gap-4 border-t border-[#5B403D]/15 bg-background py-8 font-['Inter'] text-xs uppercase tracking-wide text-[#E53935]">
             <div className="flex gap-8">
@@ -334,8 +352,7 @@ export default function MinigamesPage() {
               © 2024 Developer&apos;s Day. Built for High-Octane Precision.
             </p>
           </footer>
-        </main>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }

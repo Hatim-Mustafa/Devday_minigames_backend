@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import api from '../api/client';
+import AdminLayout from '../components/AdminLayout';
 
 const GALLERY_IMAGES = [
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBW5rgFNVYaVr4QzsrHxYRyv8XUzC6zONL8RROJPyau2uqs1goOyiOYyNNc2SXta_XJ1vYvQwn5KbZC7yVWbieERrZJJdUI5PAJvl2YhKqY3ohGxzmIb5LRyjLyEG0W_W5692x6BKTY_17hDL5x9XjVlxg2FI4wNQDKe8IGSxtT7DAHaW5wb3qv3tQ1OGtNymIYa2G_rE4kbU2fGmfK9gq76iO8d13nRXcHRZn4110byB_BXMBSozjXysw0R2drie3ZdTT5UjKOcd0',
@@ -10,7 +11,6 @@ const GALLERY_IMAGES = [
 ];
 
 export default function GamesGalleryPage() {
-  const navigate = useNavigate();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -30,84 +30,10 @@ export default function GamesGalleryPage() {
     fetchGames();
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    navigate('/');
-  };
-
   return (
-    <div className="dark h-screen overflow-hidden bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-fixed">
-      <div className="flex h-screen">
-        <aside className="fixed left-0 top-0 z-40 flex h-full w-64 flex-col border-r border-outline-variant/10 bg-[#0e0e0e] py-0 text-sm font-medium text-[#E53935]">
-          <div className="p-8">
-            <div className="flex items-center gap-4">
-              <span className="font-headline text-xl font-black uppercase tracking-tighter text-[#E53935]">
-                Developer&apos;s Day
-              </span>
-            </div>
-            <div className="mt-1 font-headline text-[10px] uppercase tracking-tighter text-neutral-500">
-              MINIGAME_ROOT
-            </div>
-          </div>
-
-          <nav className="mt-4 flex-1 space-y-2 px-4">
-            <Link
-              to="/admin/dashboard"
-              className="flex items-center gap-3 px-4 py-3 font-headline uppercase tracking-tighter text-[#E4BEB9] transition-all duration-150 ease-in-out hover:bg-[#2A2A2A]"
-            >
-              <span className="material-symbols-outlined">dashboard</span>
-              <span>Dashboard</span>
-            </Link>
-            <Link
-              to="/admin/games"
-              className="flex items-center gap-3 border-l-4 border-[#E53935] bg-[#1c1b1b] px-4 py-3 font-headline uppercase tracking-tighter text-[#FFB3B3] transition-all duration-150 ease-in-out"
-            >
-              <span className="material-symbols-outlined">sports_esports</span>
-              <span>Games</span>
-            </Link>
-          </nav>
-
-          <div className="mt-auto p-4">
-            <div className="mb-4 flex items-center gap-3 bg-surface-container-low p-4">
-              <div className="flex h-10 w-10 items-center justify-center bg-surface-container-high">
-                <span className="material-symbols-outlined text-on-surface-variant">person</span>
-              </div>
-              <div className="overflow-hidden">
-                <p className="truncate text-sm font-bold text-on-surface">Admin Avatar</p>
-                <p className="truncate font-headline text-[10px] uppercase text-on-surface-variant/60">
-                  SYS_OP_042
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left font-headline uppercase tracking-tighter text-[#E4BEB9] transition-all duration-150 ease-in-out hover:bg-[#2A2A2A]"
-            >
-              <span className="material-symbols-outlined">logout</span>
-              <span>Logout</span>
-            </button>
-          </div>
-        </aside>
-
-        <header className="fixed left-64 right-0 top-0 z-40 flex h-16 items-center justify-between border-b-0 bg-neutral-950/80 px-8 font-headline font-bold backdrop-blur-md">
-        <div className="text-xl font-black text-neutral-100">MINIGAME_COMMAND</div>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-4">
-            <span className="border border-red-500/20 bg-red-500/10 px-2 py-1 text-[10px] uppercase tracking-widest text-red-500">
-              ADMIN_STATUS:ACTIVE
-            </span>
-          </div>
-        </div>
-      </header>
-
-        <main className="no-scrollbar ml-64 flex-1 overflow-y-auto bg-background">
-          <div className="mx-auto max-w-6xl p-12">
+    <AdminLayout>
+      <div className="mx-auto max-w-6xl p-12">
             <header className="mb-12">
-              <div className="mb-4 flex items-center gap-3 font-headline text-[10px] uppercase tracking-[0.3em] text-primary">
-                <span className="h-[1px] w-8 bg-primary"></span>
-                <span>System Explorer</span>
-              </div>
               <h1 className="font-headline text-5xl font-black uppercase leading-none tracking-tighter text-on-surface">
                 MINIGAME GALLERY
               </h1>
@@ -139,8 +65,8 @@ export default function GamesGalleryPage() {
                     <div className="h-48 w-full overflow-hidden bg-surface-container-low md:h-auto md:w-48">
                       <img
                         alt={game.name}
-                        className="h-full w-full object-cover grayscale transition-all duration-500 group-hover:scale-105 group-hover:grayscale-0"
-                        src={GALLERY_IMAGES[index % GALLERY_IMAGES.length]}
+                        className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105"
+                        src={game.imageUrl || GALLERY_IMAGES[index % GALLERY_IMAGES.length]}
                       />
                     </div>
                     <div className="flex flex-1 flex-col justify-between p-6">
@@ -154,6 +80,12 @@ export default function GamesGalleryPage() {
                           {game.description ||
                             'No description available for this deployed module yet.'}
                         </p>
+                        {game.location ? (
+                          <p className="mt-2 flex items-center gap-1 text-xs text-on-surface-variant">
+                            <span className="material-symbols-outlined text-xs">location_on</span>
+                            {game.location}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -167,10 +99,6 @@ export default function GamesGalleryPage() {
               </div>
             ) : null}
           </div>
-        </main>
-        
-      </div>
-      
-    </div>
+        </AdminLayout>
   );
 }
