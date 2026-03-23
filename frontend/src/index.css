@@ -60,3 +60,16 @@
   -webkit-text-fill-color: transparent;
   color: transparent;
 }
+
+/* Keep dark form styling consistent when browser autofill is applied. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+  -webkit-text-fill-color: #e5e2e1;
+  caret-color: #e5e2e1;
+  -webkit-box-shadow: 0 0 0 1000px #0e0e0e inset;
+  box-shadow: 0 0 0 1000px #0e0e0e inset;
+}
