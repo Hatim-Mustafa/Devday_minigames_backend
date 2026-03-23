@@ -6,11 +6,30 @@ const { connectDB } = require('./config/db');
 const { initializeRedis } = require('./config/redis');
 
 const app = express();
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 // --------------------------------------------------
 // Middleware
 // --------------------------------------------------
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow server-to-server and health checks with no Origin header.
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Not allowed by CORS'));
+    },
+  })
+);
 app.use(express.json());
 
 // Global rate limiter – 100 requests per minute per IP
