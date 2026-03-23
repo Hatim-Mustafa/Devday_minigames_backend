@@ -2,6 +2,7 @@ const { createClient } = require('redis');
 
 let redisClient = null;
 let redisEnabled = false;
+let lastRedisErrorAt = 0;
 
 const getRedisUrl = () => process.env.REDIS_URL || process.env.REDIS_TLS_URL;
 
@@ -16,7 +17,16 @@ const initializeRedis = async () => {
     return null;
   }
 
-  redisClient = createClient({ url: redisUrl });
+  const isTlsRedis = redisUrl.startsWith('rediss://');
+
+  redisClient = createClient({
+    url: redisUrl,
+    socket: {
+      tls: isTlsRedis,
+      rejectUnauthorized: false,
+      reconnectStrategy: (retries) => Math.min(retries * 200, 2000),
+    },
+  });
 
   redisClient.on('ready', () => {
     redisEnabled = true;
@@ -30,7 +40,12 @@ const initializeRedis = async () => {
 
   redisClient.on('error', (error) => {
     redisEnabled = false;
-    console.error('Redis error:', error.message);
+
+    const now = Date.now();
+    if (now - lastRedisErrorAt > 5000) {
+      console.error('Redis error:', error.message);
+      lastRedisErrorAt = now;
+    }
   });
 
   try {
