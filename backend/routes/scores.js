@@ -2,8 +2,17 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { supabase } = require('../config/db');
 const { minigameApiKeyAuth } = require('../middleware/auth');
+const {
+  getCachedJson,
+  setCachedJson,
+  deleteCacheByPrefix,
+} = require('../config/redis');
 
 const router = express.Router();
+const LEADERBOARD_CACHE_TTL_SECONDS =
+  parseInt(process.env.REDIS_LEADERBOARD_TTL_SECONDS, 10) || 15;
+const SCORES_LIST_CACHE_TTL_SECONDS =
+  parseInt(process.env.REDIS_SCORES_LIST_TTL_SECONDS, 10) || 15;
 
 const mapScore = (row) => ({
   id: row.id,
@@ -103,6 +112,9 @@ router.post(
         return res.status(500).json({ message: 'Server error' });
       }
 
+      await deleteCacheByPrefix(`leaderboard:${gameId}:`);
+      await deleteCacheByPrefix('scores:list:');
+
       return res.status(200).json(mapScore(savedScore));
     } catch (error) {
       console.error(error);
@@ -140,6 +152,14 @@ router.get('/leaderboard/:gameId', async (req, res) => {
           .status(400)
           .json({ message: 'limit must be a positive integer or null' });
       }
+    }
+
+    const leaderboardCacheKey = `leaderboard:${gameId}:limit:${
+      limitValue === null ? 'all' : limitValue
+    }`;
+    const cachedLeaderboard = await getCachedJson(leaderboardCacheKey);
+    if (cachedLeaderboard) {
+      return res.json(cachedLeaderboard);
     }
 
     const { data: game, error: gameError } = await supabase
@@ -185,7 +205,14 @@ router.get('/leaderboard/:gameId', async (req, res) => {
       updatedAt: entry.updated_at,
     }));
 
-    return res.json({ gameId, gameName: game.name, leaderboard: ranked });
+    const payload = { gameId, gameName: game.name, leaderboard: ranked };
+    await setCachedJson(
+      leaderboardCacheKey,
+      payload,
+      LEADERBOARD_CACHE_TTL_SECONDS
+    );
+
+    return res.json(payload);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
@@ -199,6 +226,14 @@ router.get('/leaderboard/:gameId', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
+    const scoresListCacheKey = `scores:list:userCode:${
+      req.query.userCode || 'all'
+    }:gameId:${req.query.gameId || 'all'}`;
+    const cachedScoresList = await getCachedJson(scoresListCacheKey);
+    if (cachedScoresList) {
+      return res.json(cachedScoresList);
+    }
+
     let query = supabase
       .from('Score')
       .select(
@@ -224,6 +259,12 @@ router.get('/', async (req, res) => {
       ...mapScore(row),
       game: row.Minigame ? { name: row.Minigame.name } : null,
     }));
+
+    await setCachedJson(
+      scoresListCacheKey,
+      response,
+      SCORES_LIST_CACHE_TTL_SECONDS
+    );
 
     return res.json(response);
   } catch (error) {

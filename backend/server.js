@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { connectDB } = require('./config/db');
+const { initializeRedis } = require('./config/redis');
 
 const app = express();
 
@@ -50,6 +51,7 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   await connectDB();
+  await initializeRedis();
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });

@@ -4,6 +4,11 @@ const multer = require('multer');
 const { supabase } = require('../config/db');
 const { adminAuth } = require('../middleware/auth');
 const {
+  getCachedJson,
+  setCachedJson,
+  deleteCacheByPrefix,
+} = require('../config/redis');
+const {
   generateApiKey,
   hashApiKey,
   getApiKeyPrefix,
@@ -13,6 +18,8 @@ const {
 const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
+const MINIGAMES_CACHE_TTL_SECONDS =
+  parseInt(process.env.REDIS_MINIGAMES_TTL_SECONDS, 10) || 30;
 
 const mapMinigame = (row) => ({
   id: row.id,
@@ -35,6 +42,12 @@ const mapMinigame = (row) => ({
  */
 router.get('/', async (_req, res) => {
   try {
+    const minigamesListCacheKey = 'minigames:list';
+    const cachedMinigames = await getCachedJson(minigamesListCacheKey);
+    if (cachedMinigames) {
+      return res.json(cachedMinigames);
+    }
+
     const { data: games, error } = await supabase
       .from('Minigame')
       .select('*')
@@ -45,7 +58,14 @@ router.get('/', async (_req, res) => {
       return res.status(500).json({ message: 'Server error' });
     }
 
-    return res.json((games || []).map(mapMinigame));
+    const payload = (games || []).map(mapMinigame);
+    await setCachedJson(
+      minigamesListCacheKey,
+      payload,
+      MINIGAMES_CACHE_TTL_SECONDS
+    );
+
+    return res.json(payload);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
@@ -58,6 +78,12 @@ router.get('/', async (_req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
+    const minigameByIdCacheKey = `minigames:id:${req.params.id}`;
+    const cachedMinigame = await getCachedJson(minigameByIdCacheKey);
+    if (cachedMinigame) {
+      return res.json(cachedMinigame);
+    }
+
     const { data: game, error } = await supabase
       .from('Minigame')
       .select('*')
@@ -72,7 +98,15 @@ router.get('/:id', async (req, res) => {
     if (!game) {
       return res.status(404).json({ message: 'Minigame not found' });
     }
-    return res.json(mapMinigame(game));
+
+    const payload = mapMinigame(game);
+    await setCachedJson(
+      minigameByIdCacheKey,
+      payload,
+      MINIGAMES_CACHE_TTL_SECONDS
+    );
+
+    return res.json(payload);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
@@ -185,6 +219,8 @@ router.post(
         return res.status(500).json({ message: 'Server error' });
       }
 
+      await deleteCacheByPrefix('minigames:');
+
       return res.status(201).json({
         ...mapMinigame(game),
         apiKey: generatedApiKey,
@@ -277,6 +313,10 @@ router.put('/:id', adminAuth, upload.single('image'), async (req, res) => {
     if (!game) {
       return res.status(404).json({ message: 'Minigame not found' });
     }
+
+    await deleteCacheByPrefix('minigames:');
+    await deleteCacheByPrefix(`leaderboard:${req.params.id}:`);
+    await deleteCacheByPrefix('scores:list:');
     return res.json(mapMinigame(game));
   } catch (error) {
     console.error(error);
@@ -314,6 +354,10 @@ router.post('/:id/rotate-key', adminAuth, async (req, res) => {
       return res.status(404).json({ message: 'Minigame not found' });
     }
 
+    await deleteCacheByPrefix('minigames:');
+    await deleteCacheByPrefix(`leaderboard:${req.params.id}:`);
+    await deleteCacheByPrefix('scores:list:');
+
     return res.json({
       ...mapMinigame(game),
       apiKey: newApiKey,
@@ -345,6 +389,10 @@ router.delete('/:id', adminAuth, async (req, res) => {
     if (!game) {
       return res.status(404).json({ message: 'Minigame not found' });
     }
+
+    await deleteCacheByPrefix('minigames:');
+    await deleteCacheByPrefix(`leaderboard:${req.params.id}:`);
+    await deleteCacheByPrefix('scores:list:');
     return res.json({ message: 'Minigame removed' });
   } catch (error) {
     console.error(error);
