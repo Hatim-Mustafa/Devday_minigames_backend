@@ -150,6 +150,8 @@ export default function MinigamesPage() {
         <div className="grid grid-cols-12 gap-8">
           <div className="col-span-12 lg:col-span-8">
             <form className="space-y-8" onSubmit={handleRegister} autoComplete="off">
+              <input type="text" name="fake-user" autoComplete="username" className="hidden" tabIndex={-1} aria-hidden="true" />
+              <input type="password" name="fake-pass" autoComplete="new-password" className="hidden" tabIndex={-1} aria-hidden="true" />
               {loadingExisting ? (
                 <p className="text-sm text-on-surface-variant">Loading minigame details…</p>
               ) : null}
@@ -160,6 +162,7 @@ export default function MinigamesPage() {
                 </label>
                 <input
                   id="gameName"
+                  name="minigame-title"
                   className="w-full border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-on-surface transition-colors placeholder:text-surface-container-highest focus:border-primary focus:ring-0"
                   placeholder="e.g. Cyber Runner 2077"
                   type="text"
@@ -167,6 +170,8 @@ export default function MinigamesPage() {
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck={false}
+                  readOnly
+                  onFocus={(e) => e.currentTarget.removeAttribute('readonly')}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -179,6 +184,7 @@ export default function MinigamesPage() {
                 </label>
                 <textarea
                   id="gameDesc"
+                  name="minigame-description"
                   className="w-full resize-none border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-on-surface transition-colors placeholder:text-surface-container-highest focus:border-primary focus:ring-0"
                   placeholder="Detailed game mechanics and instructions..."
                   rows="8"
@@ -186,6 +192,8 @@ export default function MinigamesPage() {
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck={false}
+                  readOnly
+                  onFocus={(e) => e.currentTarget.removeAttribute('readonly')}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
@@ -197,6 +205,7 @@ export default function MinigamesPage() {
                 </label>
                 <input
                   id="gameLocation"
+                  name="minigame-location"
                   className="w-full border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-on-surface transition-colors placeholder:text-surface-container-highest focus:border-primary focus:ring-0"
                   placeholder="e.g. Lab 201, Auditorium, Campus Ground"
                   type="text"
@@ -204,6 +213,8 @@ export default function MinigamesPage() {
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck={false}
+                  readOnly
+                  onFocus={(e) => e.currentTarget.removeAttribute('readonly')}
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                 />
