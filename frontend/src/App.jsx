@@ -12,8 +12,6 @@ import LoginPage from './pages/LoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import MinigamesPage from './pages/MinigamesPage';
 import GamesGalleryPage from './pages/GamesGalleryPage';
-import ScoresPage from './pages/ScoresPage';
-import NavBar from './components/NavBar';
 import './App.css';
 
 function AppRoutes() {
@@ -27,11 +25,6 @@ function AppRoutes() {
 
   const handleLogin = () => {
     navigate('/admin/dashboard');
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    navigate('/');
   };
 
   return (
@@ -88,20 +81,6 @@ function AppRoutes() {
           element={
             isAuthenticated ? (
               <GamesGalleryPage />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
-
-        <Route
-          path="/admin/scores"
-          element={
-            isAuthenticated ? (
-              <>
-                <NavBar onLogout={handleLogout} />
-                <ScoresPage />
-              </>
             ) : (
               <Navigate to="/" replace />
             )
