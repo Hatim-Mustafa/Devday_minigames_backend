@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
 import developerDayLogo from '../assets/logo.png';
 
 export default function PublicTopNav() {
@@ -19,29 +18,7 @@ export default function PublicTopNav() {
           </span>
         </div>
 
-        <div className="hidden items-center gap-8 md:flex">
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) =>
-              isActive
-                ? 'border-b-2 border-[#E53935] font-headline font-bold uppercase tracking-tighter text-[#E5E2E1]'
-                : 'px-3 py-1 font-headline font-bold uppercase tracking-tighter text-[#E4BEB9] transition-colors duration-200 hover:bg-[#2A2A2A]'
-            }
-          >
-            Leaderboard
-          </NavLink>
-          <NavLink
-            to="/games"
-            className={({ isActive }) =>
-              isActive
-                ? 'border-b-2 border-[#E53935] font-headline font-bold uppercase tracking-tighter text-[#E5E2E1]'
-                : 'px-3 py-1 font-headline font-bold uppercase tracking-tighter text-[#E4BEB9] transition-colors duration-200 hover:bg-[#2A2A2A]'
-            }
-          >
-            Games
-          </NavLink>
-        </div>
+
 
         <div className="hidden items-center gap-4 md:flex md:gap-6">
           <div className="hidden items-center gap-2 border border-outline-variant/20 bg-surface-container-low/50 px-3 py-1.5 sm:flex">
@@ -53,12 +30,6 @@ export default function PublicTopNav() {
               Status: Public_Access
             </span>
           </div>
-          <Link
-            className="inline-block bg-gradient-to-r from-[#E53935] to-[#B71C1C] px-6 py-2 font-['Space_Grotesk'] text-xs font-black uppercase tracking-tighter text-white shadow-[0_0_15px_rgba(229,57,53,0.3)] transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(229,57,53,0.5)] active:scale-95"
-            to="/login"
-          >
-            Elevate Status
-          </Link>
         </div>
 
         <button
@@ -77,33 +48,6 @@ export default function PublicTopNav() {
         }`}
       >
         <nav className="flex flex-col gap-2 p-4">
-          <NavLink
-            to="/"
-            end
-            onClick={() => setMenuOpen(false)}
-            className={({ isActive }) =>
-              `px-3 py-2 text-center font-headline font-bold uppercase tracking-tighter transition-colors duration-200 ${
-                isActive
-                  ? 'border-t-2 border-[#E53935] bg-[#1c1b1b] text-[#FFB3B3]'
-                  : 'text-[#E4BEB9] hover:bg-[#2A2A2A]'
-              }`
-            }
-          >
-            Leaderboard
-          </NavLink>
-          <NavLink
-            to="/games"
-            onClick={() => setMenuOpen(false)}
-            className={({ isActive }) =>
-              `px-3 py-2 text-center font-headline font-bold uppercase tracking-tighter transition-colors duration-200 ${
-                isActive
-                  ? 'border-t-2 border-[#E53935] bg-[#1c1b1b] text-[#FFB3B3]'
-                  : 'text-[#E4BEB9] hover:bg-[#2A2A2A]'
-              }`
-            }
-          >
-            Games
-          </NavLink>
           <div className="mt-1 flex justify-center">
             <div className="inline-flex items-center gap-2 border border-outline-variant/20 bg-surface-container-low/50 px-3 py-1.5">
               <span className="relative flex h-2 w-2">
@@ -115,13 +59,6 @@ export default function PublicTopNav() {
               </span>
             </div>
           </div>
-          <Link
-            to="/login"
-            onClick={() => setMenuOpen(false)}
-            className="mt-2 inline-block bg-gradient-to-r from-[#E53935] to-[#B71C1C] px-6 py-2 text-center font-['Space_Grotesk'] text-xs font-black uppercase tracking-tighter text-white shadow-[0_0_15px_rgba(229,57,53,0.3)] transition-all duration-200 hover:shadow-[0_0_20px_rgba(229,57,53,0.5)]"
-          >
-            Elevate Status
-          </Link>
         </nav>
       </div>
     </header>

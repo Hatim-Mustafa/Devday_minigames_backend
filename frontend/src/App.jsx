@@ -7,7 +7,6 @@ import {
   useLocation,
 } from 'react-router-dom';
 import HomePage from './pages/HomePage';
-import PublicGamesPage from './pages/PublicGamesPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import MinigamesPage from './pages/MinigamesPage';
@@ -31,7 +30,7 @@ function AppRoutes() {
     <main className={isAdminShellPage ? 'app-main-full' : ''}>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/games" element={<PublicGamesPage />} />
+        <Route path="/games" element={<Navigate to="/" replace />} />
         <Route
           path="/login"
           element={
@@ -49,7 +48,7 @@ function AppRoutes() {
             isAuthenticated ? (
               <AdminDashboardPage />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/login" replace />
             )
           }
         />
@@ -60,7 +59,7 @@ function AppRoutes() {
             isAuthenticated ? (
               <MinigamesPage />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/login" replace />
             )
           }
         />
@@ -71,7 +70,7 @@ function AppRoutes() {
             isAuthenticated ? (
               <MinigamesPage />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/login" replace />
             )
           }
         />
@@ -82,19 +81,19 @@ function AppRoutes() {
             isAuthenticated ? (
               <GamesGalleryPage />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/login" replace />
             )
           }
         />
 
         <Route
           path="/admin"
-          element={<Navigate to="/admin/dashboard" replace />}
+          element={<Navigate to="/login" replace />}
         />
 
         <Route
           path="/admin/minigames"
-          element={<Navigate to="/admin/dashboard" replace />}
+          element={<Navigate to="/login" replace />}
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />

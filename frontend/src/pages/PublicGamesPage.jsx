@@ -124,7 +124,7 @@ export default function PublicGamesPage() {
         <div className="mb-1 flex gap-8 sm:mb-2">
         </div>
         <p className="font-body text-[10px] uppercase tracking-wide text-[#E4BEB9] opacity-80 sm:text-xs">
-          © 2024 Developer&apos;s Day. Built for High-Octane Precision.
+          © 2026 Developer&apos;s Day. Built for High-Octane Precision.
         </p>
       </footer>
     </div>

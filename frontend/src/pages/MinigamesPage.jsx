@@ -372,7 +372,7 @@ export default function MinigamesPage() {
             <div className="flex gap-8">
             </div>
             <p className="opacity-60">
-              © 2024 Developer&apos;s Day. Built for High-Octane Precision.
+              © 2026 Developer&apos;s Day. Built for High-Octane Precision.
             </p>
           </footer>
         </div>
