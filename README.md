@@ -14,7 +14,7 @@ Each minigame needs to make **one API call** to this backend:
 
 | Call | Endpoint | Purpose |
 |------|----------|---------|
-| 1 | `POST /api/scores` | Submit a score for a participant |
+| 1 | `POST /api/scores` | Submit a score for a participant (one play per game) |
 
 Both calls require the minigame API key in request headers:
 
@@ -73,7 +73,9 @@ x-api-key: <MINIGAME_API_KEY>
   "metadata": {}   // optional – any extra per-game data
 }
 ```
-Response `200 OK`: the saved/updated score document.
+Response `200 OK`: the saved score document.
+
+If a participant has already played the same game, the backend returns `409 Conflict`.
 
 ---
 
@@ -106,6 +108,11 @@ Only the hash is stored in the database.
 GET /api/scores              # list all
 GET /api/scores?userCode=…   # filter by user
 GET /api/scores?gameId=…     # filter by game
+```
+
+#### Leaderboard
+```
+GET /api/scores/leaderboard/:gameId   # ranked entries with participant names
 ```
 
 ---
@@ -144,6 +151,16 @@ npm test
 | `score` | Number | Numeric score value |
 | `playTime` | Number | Completion time (lower is better for tie-breaks) |
 | `metadata` | Mixed | Optional per-game extra data |
+
+### Leaderboard entry
+| Field | Type | Description |
+|-------|------|-------------|
+| `rank` | Number | Position in the leaderboard |
+| `userCode` | String | Participant minigame code (stable identifier) |
+| `playerName` | String | Display name resolved from the participant record |
+| `score` | Number | Numeric score value |
+| `playTime` | Number | Completion time |
+| `updatedAt` | String | Timestamp of the recorded score |
 
 ### Minigame
 | Field | Type | Description |

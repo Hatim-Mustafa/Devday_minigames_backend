@@ -210,9 +210,32 @@ router.get('/leaderboard/:gameId', async (req, res) => {
       return res.status(500).json({ message: 'Server error' });
     }
 
+    const participantCodes = [...new Set((board || []).map((entry) => entry.user_code))];
+    let participantNameByCode = new Map();
+
+    if (participantCodes.length > 0) {
+      const { data: participants, error: participantError } = await supabase
+        .from('Participant')
+        .select('minigameCode, fullName')
+        .in('minigameCode', participantCodes);
+
+      if (participantError) {
+        console.error(participantError);
+        return res.status(500).json({ message: 'Server error' });
+      }
+
+      participantNameByCode = new Map(
+        (participants || []).map((participant) => [
+          participant.minigameCode,
+          participant.fullName,
+        ])
+      );
+    }
+
     const ranked = (board || []).map((entry, i) => ({
       rank: i + 1,
       userCode: entry.user_code,
+      playerName: participantNameByCode.get(entry.user_code) || entry.user_code,
       score: entry.score,
       playTime: entry.play_time,
       updatedAt: entry.updated_at,

@@ -77,6 +77,7 @@ export default function HomePage() {
       .map((entry) => ({
         gameId: selectedGameId,
         userCode: entry.userCode,
+        playerName: entry.playerName || entry.fullName || entry.userCode,
         score: Number(entry.score) || 0,
         playTime: Number(entry.playTime) || 0,
         updatedAt: entry.updatedAt,
@@ -289,7 +290,7 @@ export default function HomePage() {
                                     </span>
                                   </div>
                                   <span className="font-body font-semibold">
-                                    {entry.userCode}
+                                    {entry.playerName}
                                   </span>
                                 </div>
                               </td>

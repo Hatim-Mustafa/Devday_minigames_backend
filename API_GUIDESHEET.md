@@ -18,7 +18,7 @@ It is based on the current backend implementation under `backend/routes`.
 - Public endpoints in this guide:
   - `GET /api/participants/:minigameCode` (code -> participant name)
   - `POST /api/scores` (submit or update score)
-  - `GET /api/scores/leaderboard/:gameId` (ranked leaderboard)
+  - `GET /api/scores/leaderboard/:gameId` (ranked leaderboard with player names)
 
 ## 2) Authentication and Access Rules
 
@@ -68,10 +68,22 @@ Resolves a participant's minigame code to their full name.
 
 - `minigameCode` (string, required)
 
+## Optional query parameter
+
+- `gameId` (string, optional)
+
+If provided, the lookup also checks whether the participant has already submitted a score for that game.
+
 ## Example request
 
 ```bash
 curl -X GET "http://localhost:5000/api/participants/U001"
+```
+
+With game validation:
+
+```bash
+curl -X GET "http://localhost:5000/api/participants/U001?gameId=36f7208b-b2db-4f98-a1c8-6ef8b52c1174"
 ```
 
 ## Success response
@@ -83,6 +95,8 @@ curl -X GET "http://localhost:5000/api/participants/U001"
   "fullName": "Aisha Khan"
 }
 ```
+
+If `gameId` is supplied and the player has already played that game, the API returns `409 Conflict`.
 
 ## Error responses
 
@@ -185,11 +199,11 @@ curl -X POST "http://localhost:5000/api/scores" \
 }
 ```
 
-## Upsert behavior (important)
+## One-play-per-game behavior (important)
 
-- Backend performs upsert on unique key `(user_code, game_id)`.
-- This means a second submission for the same user and same game updates the existing row instead of creating a duplicate.
-- Current implementation overwrites with latest submitted values.
+- Backend rejects a second submission for the same `(user_code, game_id)` pair.
+- If the player already submitted a score for that game, the API returns `409 Conflict`.
+- This keeps the first play as the only recorded attempt for that game.
 
 ## Error responses
 
@@ -300,6 +314,11 @@ Possible validation messages:
 
 Returns ranked entries for one game.
 
+Each leaderboard entry includes:
+
+- `playerName`: resolved from the participant record
+- `userCode`: kept as a stable internal identifier
+
 ## Endpoint
 
 `GET /api/scores/leaderboard/:gameId`
@@ -352,6 +371,7 @@ curl -X GET "http://localhost:5000/api/scores/leaderboard/36f7208b-b2db-4f98-a1c
     {
       "rank": 1,
       "userCode": "U009",
+      "playerName": "Aisha Khan",
       "score": 97,
       "playTime": 25.1,
       "updatedAt": "2026-03-25T10:10:10.000Z"
@@ -359,6 +379,7 @@ curl -X GET "http://localhost:5000/api/scores/leaderboard/36f7208b-b2db-4f98-a1c
     {
       "rank": 2,
       "userCode": "U001",
+      "playerName": "Omar Ali",
       "score": 94,
       "playTime": 28.6,
       "updatedAt": "2026-03-25T10:12:00.000Z"
@@ -366,6 +387,8 @@ curl -X GET "http://localhost:5000/api/scores/leaderboard/36f7208b-b2db-4f98-a1c
   ]
 }
 ```
+
+Leaderboard entries now include `playerName` resolved from the participant record. `userCode` remains in the response as a stable identifier, but the UI should display `playerName`.
 
 ## Error responses
 
@@ -443,7 +466,7 @@ Implications:
 1. Obtain your `gameId` and private `MINIGAME_API_KEY` from admin.
 2. Validate user code first using `GET /api/participants/:minigameCode`.
 3. Submit score using `POST /api/scores` with your `x-api-key`.
-4. Show rankings using `GET /api/scores/leaderboard/:gameId`.
+4. Show rankings using `GET /api/scores/leaderboard/:gameId` and display the participant name.
 5. Handle expected failures (`400`, `401`, `403`, `404`, `429`, `500`).
 
 ## 9) Recommended Client-Side Error Handling
@@ -460,4 +483,4 @@ Implications:
 1. User enters minigame code `U001`.
 2. Client calls `GET /api/participants/U001` and receives `fullName`.
 3. Game finishes; client posts score with `x-api-key` to `POST /api/scores`.
-4. Client fetches `GET /api/scores/leaderboard/:gameId?limit=10` to display top ranks.
+4. Client fetches `GET /api/scores/leaderboard/:gameId?limit=10` to display top ranks and names.
