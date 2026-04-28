@@ -11,6 +11,19 @@ const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const isLocalOrigin = (origin) => {
+  try {
+    const { hostname } = new URL(origin);
+    return (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1'
+    );
+  } catch (_error) {
+    return false;
+  }
+};
+
 // --------------------------------------------------
 // Middleware
 // --------------------------------------------------
@@ -22,7 +35,11 @@ app.use(
         return callback(null, true);
       }
 
-      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      if (
+        allowedOrigins.length === 0 ||
+        allowedOrigins.includes(origin) ||
+        isLocalOrigin(origin)
+      ) {
         return callback(null, true);
       }
 

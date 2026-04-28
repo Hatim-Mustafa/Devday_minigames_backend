@@ -90,20 +90,33 @@ router.post(
         return res.status(403).json({ message: 'Minigame is not active' });
       }
 
-      // Upsert: one row per (userCode, gameId) – always overwrite with latest submission
+      const { data: existingScore, error: existingScoreError } = await supabase
+        .from('Score')
+        .select('id')
+        .eq('user_code', userCode)
+        .eq('game_id', gameId)
+        .maybeSingle();
+
+      if (existingScoreError) {
+        console.error(existingScoreError);
+        return res.status(500).json({ message: 'Server error' });
+      }
+
+      if (existingScore) {
+        return res.status(409).json({
+          message: 'Participant has already played this game',
+        });
+      }
+
       const { data: savedScore, error } = await supabase
         .from('Score')
-        .upsert(
-          {
-            user_code: userCode,
-            game_id: gameId,
-            score: parsedScore,
-            play_time: parsedPlayTime,
-            metadata: metadata || {},
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'user_code,game_id' }
-        )
+        .insert({
+          user_code: userCode,
+          game_id: gameId,
+          score: parsedScore,
+          play_time: parsedPlayTime,
+          metadata: metadata || {},
+        })
         .select('*')
         .single();
 

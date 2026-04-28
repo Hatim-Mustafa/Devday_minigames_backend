@@ -35,11 +35,13 @@ const buildMaybeSingleQuery = (result) => {
   return query;
 };
 
-const buildUpsertQuery = (result) => {
+const buildScoreTableMock = ({ existingScore, insertedScore }) => {
   const query = {
-    upsert: jest.fn(() => query),
     select: jest.fn(() => query),
-    single: jest.fn().mockResolvedValue(result),
+    eq: jest.fn(() => query),
+    maybeSingle: jest.fn().mockResolvedValue(existingScore),
+    insert: jest.fn(() => query),
+    single: jest.fn().mockResolvedValue(insertedScore),
   };
   return query;
 };
@@ -76,47 +78,38 @@ describe('POST /api/admin/login', () => {
 });
 
 describe('POST /api/scores', () => {
-  it('upserts a score and returns 200', async () => {
+  it('creates a score and returns 200', async () => {
     mockSupabase.from.mockImplementation((table) => {
-      if (table === 'minigames') {
-        return {
-          select: jest.fn(() => ({
-            eq: jest.fn((column, value) => {
-              const result =
-                column === 'api_key_hash' && value === TEST_API_KEY_HASH
-                  ? { id: 'game-1', name: 'Game 1', is_active: true }
-                  : column === 'id' && value === 'game-1'
-                    ? { id: 'game-1', is_active: true }
-                    : null;
-
-              return {
-                maybeSingle: jest.fn().mockResolvedValue({
-                  data: result,
-                  error: null,
-                }),
-              };
-            }),
-          })),
-        };
-      }
-
-      if (table === 'participants') {
-        return buildMaybeSingleQuery({ data: { id: 'user-1' }, error: null });
-      }
-
-      if (table === 'scores') {
-        return buildUpsertQuery({
-          data: {
-            id: 'score-1',
-            user_code: 'U001',
-            game_id: 'game-1',
-            score: 42,
-            play_time: 30,
-            metadata: {},
-            created_at: '2026-03-18T10:00:00.000Z',
-            updated_at: '2026-03-18T10:00:00.000Z',
-          },
+      if (table === 'Minigame') {
+        return buildMaybeSingleQuery({
+          data: { id: 'game-1', name: 'Game 1', is_active: true },
           error: null,
+        });
+      }
+
+      if (table === 'Participant') {
+        return buildMaybeSingleQuery({
+          data: { id: 'user-1' },
+          error: null,
+        });
+      }
+
+      if (table === 'Score') {
+        return buildScoreTableMock({
+          existingScore: { data: null, error: null },
+          insertedScore: {
+            data: {
+              id: 'score-1',
+              user_code: 'U001',
+              game_id: 'game-1',
+              score: 42,
+              play_time: 30,
+              metadata: {},
+              created_at: '2026-03-18T10:00:00.000Z',
+              updated_at: '2026-03-18T10:00:00.000Z',
+            },
+            error: null,
+          },
         });
       }
 
@@ -136,5 +129,97 @@ describe('POST /api/scores', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('score', 42);
     expect(res.body).toHaveProperty('playTime', 30);
+  });
+
+  it('rejects a second score submission for the same game', async () => {
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'Minigame') {
+        return buildMaybeSingleQuery({
+          data: { id: 'game-1', name: 'Game 1', is_active: true },
+          error: null,
+        });
+      }
+
+      if (table === 'Participant') {
+        return buildMaybeSingleQuery({
+          data: { id: 'user-1' },
+          error: null,
+        });
+      }
+
+      if (table === 'Score') {
+        return buildScoreTableMock({
+          existingScore: { data: { id: 'score-1' }, error: null },
+          insertedScore: { data: null, error: null },
+        });
+      }
+
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const res = await request(app)
+      .post('/api/scores')
+      .set('x-api-key', TEST_API_KEY)
+      .send({
+        userCode: 'U001',
+        gameId: 'game-1',
+        score: 42,
+        playTime: 30,
+      });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body).toHaveProperty(
+      'message',
+      'Participant has already played this game'
+    );
+  });
+});
+
+describe('GET /api/participants/:minigameCode', () => {
+  it('returns the participant name when the player has not played the game', async () => {
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'Participant') {
+        return buildMaybeSingleQuery({
+          data: { fullName: 'Aisha Khan' },
+          error: null,
+        });
+      }
+
+      if (table === 'Score') {
+        return buildMaybeSingleQuery({ data: null, error: null });
+      }
+
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const res = await request(app).get('/api/participants/U001?gameId=game-1');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ fullName: 'Aisha Khan', canPlay: true });
+  });
+
+  it('rejects lookup when the player already played the game', async () => {
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'Participant') {
+        return buildMaybeSingleQuery({
+          data: { fullName: 'Aisha Khan' },
+          error: null,
+        });
+      }
+
+      if (table === 'Score') {
+        return buildMaybeSingleQuery({ data: { id: 'score-1' }, error: null });
+      }
+
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const res = await request(app).get('/api/participants/U001?gameId=game-1');
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body).toHaveProperty(
+      'message',
+      'Participant has already played this game'
+    );
   });
 });

@@ -408,6 +408,7 @@ Behavior:
 
 - If `CORS_ALLOWED_ORIGINS` is empty, all browser origins are allowed.
 - If `CORS_ALLOWED_ORIGINS` has values, only listed origins are allowed.
+- Local development origins on `localhost`, `127.0.0.1`, and `::1` are allowed so locally hosted games can call the API during development.
 
 Important:
 
@@ -419,6 +420,7 @@ For multiple game developers:
 
 - If a partner calls APIs from their own backend, no CORS origin entry is required.
 - If a partner calls APIs directly from a browser game, their exact origin must be allowlisted.
+- If a local browser game is hosted on `localhost` or loopback, it should work without adding each port manually.
 
 Example env value:
 
