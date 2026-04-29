@@ -7,6 +7,7 @@ const GAME_THUMBNAIL =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuC8wm80BTIR3kf0smSrPgc_pIlIoUnJLnW5dBcKmnOvWl0TUwD-CNGff36fBeDlTqP4zw5TT1bfkNkSLWcStZiby2jV-bs32d7VZF-DdwdG8H0qi0L7b5WQoP5VbGDNtPbwMK92l9zfcGDrvE9t5egpvRM0bdpZLxYNd-zW_u5lgX8yC7130RM2oqv8z_zpTgVP5g6mAqTf-hLxms8s0G2-2f9OSunrsw-BwtGMdxExnRsbNX8Z77eqTLzLJ7JszvVBvTxOkoniNOU';
 
 export default function AdminDashboardPage() {
+  const navigate = useNavigate();
   const [games, setGames] = useState([]);
   const [totalScores, setTotalScores] = useState(0);
   const [loading, setLoading] = useState(true);
