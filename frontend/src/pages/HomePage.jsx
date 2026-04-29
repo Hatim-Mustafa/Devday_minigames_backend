@@ -67,6 +67,65 @@ export default function HomePage() {
     fetchLeaderboard();
   }, [selectedGameId, leaderboardsByGameId]);
 
+  // Adaptive polling for the open leaderboard to minimize reads.
+  // - Starts with `baseIntervalMs`, doubles when no changes up to `maxIntervalMs`.
+  // - Resets to base when the leaderboard changes or when a new submission occurs.
+  React.useEffect(() => {
+    if (!selectedGameId) return undefined;
+
+    let mounted = true;
+    let timeoutId = null;
+    const baseIntervalMs = 5000; // starting interval
+    const maxIntervalMs = 60000; // cap at 60s
+    let currentInterval = baseIntervalMs;
+    let lastHash = null;
+
+    const hashBoard = (board) => JSON.stringify(board || []);
+
+    const pollOnce = async () => {
+      try {
+        const boardRes = await api.get(`/scores/leaderboard/${selectedGameId}`);
+        if (!mounted) return;
+        const newBoard = boardRes.data?.leaderboard || [];
+        const newHash = hashBoard(newBoard);
+
+        if (newHash !== lastHash) {
+          // change detected: update UI and reset interval
+          lastHash = newHash;
+          currentInterval = baseIntervalMs;
+          setLeaderboardsByGameId((prev) => ({
+            ...prev,
+            [selectedGameId]: { leaderboard: newBoard, fetchedAt: Date.now() },
+          }));
+        } else {
+          // no change: back off
+          currentInterval = Math.min(currentInterval * 2, maxIntervalMs);
+        }
+      } catch (err) {
+        if (!mounted) return;
+        setLeaderboardsByGameId((prev) => ({
+          ...prev,
+          [selectedGameId]: { failed: true },
+        }));
+        // on error, back off to avoid tight loops
+        currentInterval = Math.min(currentInterval * 2, maxIntervalMs);
+      }
+
+      // schedule next poll
+      if (mounted) {
+        timeoutId = setTimeout(pollOnce, currentInterval);
+      }
+    };
+
+    // initial poll
+    pollOnce();
+
+    return () => {
+      mounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [selectedGameId]);
+
   const flattenedLeaderboard = useMemo(() => {
     if (!selectedGameId) return [];
 
