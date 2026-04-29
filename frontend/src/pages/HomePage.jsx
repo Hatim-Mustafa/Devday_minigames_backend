@@ -70,7 +70,7 @@ export default function HomePage() {
   // Adaptive polling for the open leaderboard to minimize reads.
   // - Starts with `baseIntervalMs`, doubles when no changes up to `maxIntervalMs`.
   // - Resets to base when the leaderboard changes or when a new submission occurs.
-  React.useEffect(() => {
+  useEffect(() => {
     if (!selectedGameId) return undefined;
 
     let mounted = true;
@@ -174,7 +174,7 @@ export default function HomePage() {
                 Live Statistics
               </span>
             </div>
-            <h1 className="mb-6 font-headline text-6xl font-black uppercase leading-none tracking-tighter text-on-surface md:text-8xl">
+            <h1 className="mb-6 font-headline text-4xl font-black uppercase leading-none tracking-tighter text-on-surface md:text-8xl">
               Minigame <br />
               <span className="gradient-text">
                 Leaderboard
@@ -300,8 +300,8 @@ export default function HomePage() {
                 !loadingLeaderboard &&
                 !leaderboardsByGameId[selectedGameId]?.failed ? (
                   <>
-                    <div className="overflow-hidden bg-surface-container-lowest">
-                      <table className="w-full border-collapse text-left">
+                    <div className="overflow-x-auto bg-surface-container-lowest">
+                      <table className="min-w-[720px] w-full border-collapse text-left">
                         <thead>
                           <tr className="bg-surface-container-high">
                             <th className="px-6 py-4 font-label text-xs font-bold uppercase tracking-wider text-primary">
