@@ -116,6 +116,7 @@ router.post(
           score: parsedScore,
           play_time: parsedPlayTime,
           metadata: metadata || {},
+          updated_at: new Date().toISOString(),
         })
         .select('*')
         .single();
@@ -195,7 +196,7 @@ router.get('/leaderboard/:gameId', async (req, res) => {
       .from('Score')
       .select('user_code, score, play_time, updated_at')
       .eq('game_id', gameId)
-      .order('score', { ascending: false })
+      .order('score', { ascending: false }) 
       .order('play_time', { ascending: true })
       .order('updated_at', { ascending: true });
 
